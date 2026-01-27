@@ -3,3 +3,8 @@ node_modules/
 dist/
 build/
 *.log
+
+# Test files
+test-*.ps1
+test-*.bat
+test-*.json
