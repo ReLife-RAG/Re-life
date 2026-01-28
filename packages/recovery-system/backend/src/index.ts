@@ -9,9 +9,8 @@ const startServer = async () => {
   try {
     // 1. Connect to Database FIRST
     await connectDB();
-    
-    // 2. Load the App ONLY after DB is ready (Dynamic Import)
-    // This ensures BetterAuth finds a valid database connection
+
+    // 2. Load the app only after DB is ready
     const app = (await import("./app")).default;
 
     app.listen(PORT, () => {
