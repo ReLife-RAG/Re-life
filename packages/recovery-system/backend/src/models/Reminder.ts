@@ -49,7 +49,7 @@ const ReminderSchema: Schema = new Schema({
   },
   message: {
     type: String,
-    default: 'Time for your daily check-in! 💚',
+    default: 'Time for your daily check-in!',
     maxlength: 200
   }
 }, {

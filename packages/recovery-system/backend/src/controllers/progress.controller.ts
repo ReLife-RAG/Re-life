@@ -3,15 +3,11 @@ import mongoose from 'mongoose';
 import Progress from '../models/Progress';
 import User from '../models/User';
 
-// Test user ID (valid MongoDB ObjectId format)
-const TEST_USER_ID = '507f1f77bcf86cd799439011';
-
 // Step 3: Daily Check-in Logic
 // POST /api/progress/checkin
 export const dailyCheckIn = async (req: Request, res: Response): Promise<Response | void> => {
   try {
-    // Using test ObjectId for testing until Auth is ready
-    const userId = req.body.userId || TEST_USER_ID; // TODO: Replace with req.user.id after auth
+    const userId = (req as any).user?.id;
     const { mood, notes, energy } = req.body;
 
     // Validate required fields
@@ -83,7 +79,7 @@ export const dailyCheckIn = async (req: Request, res: Response): Promise<Respons
       // Check if already checked in today
       if (lastCheckIn.getTime() === today.getTime()) {
         return res.status(400).json({
-          message: 'You have already checked in today! Come back tomorrow 🌟',
+          message: 'You have already checked in today! Come back tomorro',
           progress
         });
       }
@@ -129,9 +125,9 @@ export const dailyCheckIn = async (req: Request, res: Response): Promise<Respons
     await progress.save();
 
     // Build response message
-    let message = `Check-in successful! 🔥 Current streak: ${progress.streak} days`;
+    let message = `Check-in successful! Current streak: ${progress.streak} days`;
     if (newlyAchieved.length > 0) {
-      message = `🎉 Milestone Unlocked: ${newlyAchieved[0].name}! You're at ${progress.streak} days!`;
+      message = ` Milestone Unlocked: ${newlyAchieved[0].name}! You're at ${progress.streak} days!`;
     }
 
     res.status(200).json({
@@ -153,8 +149,7 @@ export const dailyCheckIn = async (req: Request, res: Response): Promise<Respons
 // GET /api/progress/streak
 export const getStreak = async (req: Request, res: Response): Promise<Response | void> => {
   try {
-    // Get userId from query params for GET request
-    const userId = req.query.userId as string || TEST_USER_ID; // TODO: Replace with req.user.id
+    const userId = (req as any).user?.id;
 
     // Validate ObjectId format
     if (!mongoose.Types.ObjectId.isValid(userId)) {
@@ -191,8 +186,7 @@ export const getStreak = async (req: Request, res: Response): Promise<Response |
 // GET /api/progress/mood-history
 export const getMoodHistory = async (req: Request, res: Response): Promise<Response | void> => {
   try {
-    // Get userId from query params for GET request
-    const userId = req.query.userId as string || TEST_USER_ID; // TODO: Replace with req.user.id
+    const userId = (req as any).user?.id;
     const { days } = req.query; // Optional: filter last N days
 
     // Validate ObjectId format
