@@ -8,6 +8,9 @@ export interface IProgress extends Document {
   // Streak counter field
   streak: number;
   
+  // Longest streak achieved
+  longestStreak: number;
+  
   // Last check-in date
   lastCheckIn: Date | null;
   
@@ -57,6 +60,13 @@ const ProgressSchema: Schema = new Schema({
   // Define streak counter field
   streak: { 
     type: Number, 
+    default: 0,
+    min: 0
+  },
+  
+  // Define longest streak field
+  longestStreak: {
+    type: Number,
     default: 0,
     min: 0
   },

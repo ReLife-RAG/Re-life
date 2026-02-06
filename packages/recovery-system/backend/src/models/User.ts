@@ -11,6 +11,7 @@ export interface IUser extends Document {
     age?: number;
     bio?: string;
   };
+  timezone?: string; // IANA timezone (e.g., "America/New_York", "Asia/Kolkata")
   recoveryStart?: Date;
   accountStatus: 'active' | 'suspended' | 'pending';
   isVerified: boolean;
@@ -33,6 +34,21 @@ const UserSchema: Schema = new Schema({
   profile: {
     age: { type: Number },
     bio: { type: String }
+  },
+  timezone: { 
+    type: String, 
+    default: 'UTC',
+    validate: {
+      validator: function(v: string) {
+        try {
+          Intl.DateTimeFormat(undefined, { timeZone: v });
+          return true;
+        } catch {
+          return false;
+        }
+      },
+      message: 'Invalid timezone format. Use IANA timezone (e.g., "America/New_York")'
+    }
   },
   recoveryStart: { type: Date },
   accountStatus: { 
