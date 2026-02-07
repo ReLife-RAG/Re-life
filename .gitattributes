@@ -1,0 +1,4 @@
+# Git attributes for Re-Life project
+
+# Documentation files - only in develop branch, exclude from main
+packages/recovery-system/backend/docs/** export-ignore

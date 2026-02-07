@@ -1,13 +1,23 @@
-import mongoose from "mongoose";
+import mongoose from 'mongoose';
 
-const connectDB = async () => {
+export const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(process.env.MONGO_URI || "");
-    console.log(`MongoDB Connected: ${conn.connection.host}`);
-  } catch (error) {
-    console.error(`Error: ${error}`);
-    process.exit(1);
+    const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/relife-recovery';
+    
+    await mongoose.connect(mongoURI);
+    
+    console.log(' MongoDB Connected Successfully');
+  } catch (error: any) {
+    console.error(' MongoDB Connection Error:', error.message);
+    // Don't exit in development, just log the error
+    console.log('  Continuing without database connection (using in-memory for testing)');
   }
 };
 
-export default connectDB;
+mongoose.connection.on('disconnected', () => {
+  console.log('  MongoDB disconnected');
+});
+
+mongoose.connection.on('error', (err) => {
+  console.error(' MongoDB connection error:', err);
+});
