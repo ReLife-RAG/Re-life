@@ -2,26 +2,22 @@ import { Request, Response } from 'express';
 import Journal from '../models/Journal';
 import mongoose from 'mongoose';
 
-
-// Add interface for request body
-interface CreateJournalBody {
-  content: string;
-  mood: string;
-  triggers?: string | string[];
-  copingStrategies?: string | string[];
-  isPrivate?: string | boolean;
-}
-
-export const createEntry = async (req: Request<{}, {}, CreateJournalBody>, res: Response) => {
+export const createEntry = async (req: Request, res: Response) => {
   try {
+    // GET USER ID FROM AUTHENTICATION (like progress controller)
+    const userId = (req as any).user.id;
     const { content, mood, triggers, copingStrategies, isPrivate } = req.body;
-    
-    // Validation
+
+// Validation
     if (!content || !mood) {
       return res.status(400).json({ message: 'Content and mood are required' });
     }
 
-    const userId = (req as any).user._id;
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ message: 'Invalid user ID format.' });
+    }
+
     const imageUrl = req.file ? req.file.path : undefined;
 
     // Parse arrays from form-data strings
@@ -49,8 +45,14 @@ export const createEntry = async (req: Request<{}, {}, CreateJournalBody>, res: 
 
 export const getEntries = async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user._id;
+    // GET USER ID FROM AUTHENTICATION (like progress controller)
+    const userId = (req as any).user.id;
     const { date, page = '1', limit = '10' } = req.query;
+    
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ message: 'Invalid user ID format.' });
+    }
 
     let query: any = { user: userId };
 
@@ -93,12 +95,15 @@ export const getEntries = async (req: Request, res: Response) => {
 };
 export const getEntryById = async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user?._id;
-    if (!userId) return res.status(401).json({ message: 'Unauthorized' });
-
+    // GET USER ID FROM AUTHENTICATION (like progress controller)
+    const userId = (req as any).user.id;
     const { id } = req.params;
 
-    // Validate ObjectId
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ message: 'Invalid user ID format.' });
+    }
+
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: 'Invalid entry ID' });
     }
@@ -118,11 +123,15 @@ export const getEntryById = async (req: Request, res: Response) => {
 
 export const updateEntry = async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user?._id;
-    if (!userId) return res.status(401).json({ message: 'Unauthorized' });
-
-    const { id } = req.params;
+    // GET USER ID FROM AUTHENTICATION (like progress controller)
+    const userId = (req as any).user.id;
     const { content, mood, triggers, copingStrategies, isPrivate } = req.body;
+    const { id } = req.params;
+    
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ message: 'Invalid user ID format.' });
+    }
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: 'Invalid entry ID' });
@@ -156,10 +165,14 @@ export const updateEntry = async (req: Request, res: Response) => {
 
 export const deleteEntry = async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user?._id;
-    if (!userId) return res.status(401).json({ message: 'Unauthorized' });
-
+    // GET USER ID FROM AUTHENTICATION (like progress controller)
+    const userId = (req as any).user.id;
     const { id } = req.params;
+    
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ message: 'Invalid user ID format.' });
+    }
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: 'Invalid entry ID' });

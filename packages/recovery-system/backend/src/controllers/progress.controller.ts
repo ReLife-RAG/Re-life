@@ -4,15 +4,12 @@ import Progress from '../models/Progress';
 import User from '../models/User';
 import { calculateStreak, getSafeTimezone } from '../utils/streakCalculator';
 
-// Test user ID (valid MongoDB ObjectId format)
-const TEST_USER_ID = '507f1f77bcf86cd799439011';
-
 // Step 3: Daily Check-in Logic
 // POST /api/progress/checkin
 export const dailyCheckIn = async (req: Request, res: Response): Promise<Response | void> => {
   try {
-    // Using test ObjectId for testing until Auth is ready
-    const userId = req.body.userId || TEST_USER_ID; // TODO: Replace with req.user.id after auth
+    // 1. GET USER ID FROM AUTHENTICATION (Fixed)
+    const userId = (req as any).user.id;
     const { mood, notes, energy } = req.body;
 
     // Validate required fields
@@ -25,14 +22,7 @@ export const dailyCheckIn = async (req: Request, res: Response): Promise<Respons
     // Validate ObjectId format
     if (!mongoose.Types.ObjectId.isValid(userId)) {
       return res.status(400).json({ 
-        message: 'Invalid user ID format. Please use a valid ObjectId or omit for testing.' 
-      });
-    }
-
-    // Validate ObjectId format
-    if (!mongoose.Types.ObjectId.isValid(userId)) {
-      return res.status(400).json({ 
-        message: 'Invalid user ID format. Please use a valid ObjectId or omit for testing.' 
+        message: 'Invalid user ID format.' 
       });
     }
 
@@ -78,7 +68,9 @@ export const dailyCheckIn = async (req: Request, res: Response): Promise<Respons
     const userTimezone = getSafeTimezone(user?.timezone);
 
     // Calculate streak using utility function with timezone support
-    const streakResult = calculateStreak(progress.lastCheckIn, userTimezone);
+    // (Ensure lastCheckIn is a Date object)
+    const lastCheckInDate = progress.lastCheckIn ? new Date(progress.lastCheckIn) : new Date();
+    const streakResult = calculateStreak(lastCheckInDate, userTimezone);
 
     // Check if already checked in today
     if (streakResult.alreadyCheckedInToday) {
@@ -151,8 +143,8 @@ export const dailyCheckIn = async (req: Request, res: Response): Promise<Respons
 // GET /api/progress/streak
 export const getStreak = async (req: Request, res: Response): Promise<Response | void> => {
   try {
-    // Get userId from query params for GET request
-    const userId = req.query.userId as string || TEST_USER_ID; // TODO: Replace with req.user.id
+    // 2. GET USER ID FROM AUTHENTICATION (Fixed)
+    const userId = (req as any).user.id;
 
     // Validate ObjectId format
     if (!mongoose.Types.ObjectId.isValid(userId)) {
@@ -191,8 +183,8 @@ export const getStreak = async (req: Request, res: Response): Promise<Response |
 // GET /api/progress/mood-history
 export const getMoodHistory = async (req: Request, res: Response): Promise<Response | void> => {
   try {
-    // Get userId from query params for GET request
-    const userId = req.query.userId as string || TEST_USER_ID; // TODO: Replace with req.user.id
+    // 3. GET USER ID FROM AUTHENTICATION (Fixed)
+    const userId = (req as any).user.id;
     const { days } = req.query; // Optional: filter last N days
 
     // Validate ObjectId format
