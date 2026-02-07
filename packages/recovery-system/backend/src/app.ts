@@ -23,6 +23,9 @@ app.get("/", (req: Request, res: Response) => {
 // Progress Tracking Routes
 app.use('/api', progressRoutes);
 
+// Journal Routes
+app.use('/api', journalRoutes);
+
 // 404 Handler
 app.use((req: Request, res: Response) => {
   res.status(404).json({ 
