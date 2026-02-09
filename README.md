@@ -2,6 +2,10 @@
 
 A monorepo containing the Re-Life landing page and RAG-based addiction recovery system.
 
+## 📝 Recent Changes
+
+- **2026-02-09** - [#27](https://github.com/ReLife-SDGP-CS-79/Re-life-website/pull/27) Automate README updates on PR merge via GitHub Actions by [@Copilot](https://github.com/Copilot)
+
 ## 📦 Project Structure
 
 ```
