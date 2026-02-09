@@ -30,7 +30,7 @@ const newEntry = `- **${prDate}** - [#${prNumber}](${prUrl}) ${prTitle} by [@${p
 
 // Check if Recent Changes section exists
 const recentChangesHeader = '## 📝 Recent Changes';
-const recentChangesRegex = /## 📝 Recent Changes\n\n([\s\S]*?)(?=\n## |\n---|\Z)/;
+const recentChangesRegex = /## 📝 Recent Changes\n\n([\s\S]*?)(?=\n## |\n---|$)/;
 
 if (readme.includes(recentChangesHeader)) {
   // Section exists, add the new entry at the top of the list
@@ -59,19 +59,20 @@ if (readme.includes(recentChangesHeader)) {
   }
 } else {
   // Section doesn't exist, create it after the main header
-  const headerRegex = /(# Re-Life Monorepo\n\nA monorepo containing the Re-Life landing page and RAG-based addiction recovery system\.)/;
+  // Try to match the first heading and its description (more generic pattern)
+  const headerRegex = /(^# .*?\n\n.*?\n)/m;
   
   if (readme.match(headerRegex)) {
-    const newSection = `\n\n${recentChangesHeader}\n\n${newEntry}`;
+    const newSection = `\n${recentChangesHeader}\n\n${newEntry}\n`;
     readme = readme.replace(headerRegex, `$1${newSection}`);
     
     console.log('✓ Created new Recent Changes section');
   } else {
-    // If header pattern doesn't match, add at the beginning after the first heading
-    const firstHeadingRegex = /(^# .*\n\n.*\n)/m;
-    if (readme.match(firstHeadingRegex)) {
-      const newSection = `\n${recentChangesHeader}\n\n${newEntry}\n`;
-      readme = readme.replace(firstHeadingRegex, `$1${newSection}`);
+    // If no match, insert after first line
+    const lines = readme.split('\n');
+    if (lines.length > 0) {
+      lines.splice(2, 0, '', recentChangesHeader, '', newEntry, '');
+      readme = lines.join('\n');
       console.log('✓ Created new Recent Changes section (fallback method)');
     }
   }
