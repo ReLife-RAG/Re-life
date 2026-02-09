@@ -4,8 +4,8 @@ A monorepo containing the Re-Life landing page and RAG-based addiction recovery 
 
 ## 📝 Recent Changes
 
+- **2026-02-09** - [#28](https://github.com/ReLife-SDGP-CS-79/Re-life-website/pull/28) Add CODEOWNERS to require owner approval on all PRs by [@Copilot](https://github.com/Copilot)
 - **2026-02-09** - [#27](https://github.com/ReLife-SDGP-CS-79/Re-life-website/pull/27) Automate README updates on PR merge via GitHub Actions by [@Copilot](https://github.com/Copilot)
-
 ## 📦 Project Structure
 
 ```
