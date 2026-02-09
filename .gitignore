@@ -38,6 +38,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Documentation - ignore all .md files except README.md
+# Documentation - ignore all .md files except README.md and .github documentation
 *.md
 !README.md
+!.github/**/*.md
