@@ -1,27 +1,58 @@
-import dotenv from 'dotenv';
-import express, { Request, Response } from 'express';
+import express from 'express';
 import cors from 'cors';
+import connectDB from './config/db';
+import { ENV } from './config/env';
 
-dotenv.config();
+// Import your routes
+import counselorRoutes from './routes/Counselor.routes';
 
-const app = express();
-const PORT = process.env.PORT || 5000;
+const startServer = async () => {
+  try {
+    // Connect to MongoDB
+    await connectDB();
 
-// Middleware
-app.use(cors());
-app.use(express.json());
+    // Create Express app
+    const app = express();
 
-// Basic route
-app.get('/api/health', (req: Request, res: Response) => {
-  res.json({ status: 'healthy', message: 'Re-Life Recovery System API' });
-});
+    // Middleware
+    app.use(cors({
+      origin: ENV.FRONTEND_URL,
+      credentials: true
+    }));
+    app.use(express.json());
+    app.use(express.urlencoded({ extended: true }));
 
-// TODO: Add your RAG endpoints here
-// Example:
-// app.post('/api/chat', async (req: Request, res: Response) => {
-//   // RAG logic here
-// });
+    // Routes
+    app.use('/api', counselorRoutes);
 
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-});
+    // Health check route
+    app.get('/', (req, res) => {
+      res.json({
+        message: 'Re-Life Recovery System API',
+        status: 'OK',
+        timestamp: new Date().toISOString()
+      });
+    });
+
+    // Error handling middleware
+    app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+      console.error('Error:', err);
+      res.status(500).json({
+        success: false,
+        message: err.message || 'Internal Server Error'
+      });
+    });
+
+    // Start server
+    app.listen(ENV.PORT, () => {
+      console.log(`✅ Server running on port ${ENV.PORT}`);
+      console.log(`🌐 API available at http://localhost:${ENV.PORT}`);
+    });
+
+  } catch (error) {
+    console.error('❌ Failed to start server:', error);
+    process.exit(1);
+  }
+};
+
+startServer();
