@@ -1,23 +1,37 @@
-import { Request, Response } from 'express';
-import * as counselorService from '../services/Counselor.service';
+import { Request, Response } from "express";
+import * as counselorService from "../services/Counselor.service";
 
-// 13.1 Create Counselor Profile
+/* =============================
+   13. COUNSELOR PROFILE
+============================= */
+
+// Create Counselor Profile
 export const createProfile = async (req: Request, res: Response) => {
   try {
-    const userId = "temp-user-id"; // Temporary - replace with real user ID later
-    const { specializations, credentials, bio, price, availability } = req.body;
-    
-    const counselor = await counselorService.createCounselorProfile(userId, {
-      specializations,
-      credentials,
+    const userId = "temp-user-id"; // Replace with auth later
+
+    const {
+      specialization,
+      qualifaicaton,
       bio,
-      price,
-      availability
-    });
-    
+      pricePersession,
+      availableSlots
+    } = req.body;
+
+    const counselor = await counselorService.createCounselorProfile(
+      userId,
+      {
+        specialization,
+        qualifaicaton,
+        bio,
+        pricePersession,
+        availableSlots
+      }
+    );
+
     res.status(201).json({
       success: true,
-      message: 'Counselor profile created successfully',
+      message: "Counselor profile created successfully",
       data: counselor
     });
   } catch (error: any) {
@@ -28,19 +42,11 @@ export const createProfile = async (req: Request, res: Response) => {
   }
 };
 
-// 13.2 Get All Counselors
-export const getAllCounselors = async (req: Request, res: Response) => {
+// Get All Counselors
+export const getAllCounselors = async (_req: Request, res: Response) => {
   try {
-    const { specialization, availability, sort } = req.query;
-    
-    const filters = {
-      specialization: specialization as string,
-      availability: availability as string,
-      sort: sort as string
-    };
-    
-    const counselors = await counselorService.getAllCounselors(filters);
-    
+    const counselors = await counselorService.getAllCounselors();
+
     res.json({
       success: true,
       count: counselors.length,
@@ -54,13 +60,13 @@ export const getAllCounselors = async (req: Request, res: Response) => {
   }
 };
 
-// 13.3 Get Single Counselor
+// Get Single Counselor
 export const getCounselor = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
-    
-    const counselor = await counselorService.getCounselorById(id);
-    
+    const counselor = await counselorService.getCounselorById(
+      req.params.id
+    );
+
     res.json({
       success: true,
       data: counselor
@@ -73,21 +79,20 @@ export const getCounselor = async (req: Request, res: Response) => {
   }
 };
 
-// 13.4 Update Counselor Profile
+// Update Profile
 export const updateProfile = async (req: Request, res: Response) => {
   try {
-    const userId = "temp-user-id"; // Temporary - replace with real user ID later
-    const { id } = req.params;
-    
+    const userId = "temp-user-id";
+
     const counselor = await counselorService.updateCounselorProfile(
-      id,
+      req.params.id,
       userId,
       req.body
     );
-    
+
     res.json({
       success: true,
-      message: 'Profile updated successfully',
+      message: "Profile updated successfully",
       data: counselor
     });
   } catch (error: any) {
@@ -98,22 +103,28 @@ export const updateProfile = async (req: Request, res: Response) => {
   }
 };
 
-// 14.1 Create Booking
-export const createBooking = async (req: Request, res: Response) => {
+/* =============================
+   14. APPOINTMENTS
+============================= */
+
+// Create Appointment
+export const createAppointment = async (
+  req: Request,
+  res: Response
+) => {
   try {
-    const userId = "temp-user-id"; // Temporary - replace with real user ID later
-    const { counselorId, sessionDate, sessionTime } = req.body;
-    
-    const session = await counselorService.createBooking(userId, {
-      counselorId,
-      sessionDate,
-      sessionTime
-    });
-    
+    const userId = "temp-user-id";
+
+    const appointment =
+      await counselorService.createAppointment(
+        userId,
+        req.body
+      );
+
     res.status(201).json({
       success: true,
-      message: 'Session booked successfully',
-      data: session
+      message: "Appointment created successfully",
+      data: appointment
     });
   } catch (error: any) {
     res.status(400).json({
@@ -123,21 +134,21 @@ export const createBooking = async (req: Request, res: Response) => {
   }
 };
 
-// 14.2 Get User's Sessions
-export const getUserSessions = async (req: Request, res: Response) => {
+// Get User Appointments
+export const getUserAppointments = async (
+  _req: Request,
+  res: Response
+) => {
   try {
-    const userId = "temp-user-id"; // Temporary - replace with real user ID later
-    const { status } = req.query;
-    
-    const sessions = await counselorService.getUserSessions(
-      userId,
-      status as string
-    );
-    
+    const userId = "temp-user-id";
+
+    const appointments =
+      await counselorService.getUserAppointments(userId);
+
     res.json({
       success: true,
-      count: sessions.length,
-      data: sessions
+      count: appointments.length,
+      data: appointments
     });
   } catch (error: any) {
     res.status(500).json({
@@ -147,21 +158,21 @@ export const getUserSessions = async (req: Request, res: Response) => {
   }
 };
 
-// 14.3 Get Counselor's Sessions
-export const getCounselorSessions = async (req: Request, res: Response) => {
+// Get Counselor Appointments
+export const getCounselorAppointments = async (
+  _req: Request,
+  res: Response
+) => {
   try {
-    const userId = "temp-user-id"; // Temporary - replace with real user ID later
-    const { status } = req.query;
-    
-    const sessions = await counselorService.getCounselorSessions(
-      userId,
-      status as string
-    );
-    
+    const userId = "temp-user-id";
+
+    const appointments =
+      await counselorService.getCounselorAppointments(userId);
+
     res.json({
       success: true,
-      count: sessions.length,
-      data: sessions
+      count: appointments.length,
+      data: appointments
     });
   } catch (error: any) {
     res.status(500).json({
@@ -171,19 +182,24 @@ export const getCounselorSessions = async (req: Request, res: Response) => {
   }
 };
 
-// 14.4 Cancel Session
-export const cancelSession = async (req: Request, res: Response) => {
+// Cancel Appointment
+export const cancelAppointment = async (
+  req: Request,
+  res: Response
+) => {
   try {
-    const userId = "temp-user-id"; // Temporary - replace with real user ID later
-    const { id } = req.params;
-    const { reason } = req.body;
-    
-    const session = await counselorService.cancelSession(id, userId, reason);
-    
+    const userId = "temp-user-id";
+
+    const appointment =
+      await counselorService.cancelAppointment(
+        req.params.id,
+        userId
+      );
+
     res.json({
       success: true,
-      message: 'Session cancelled successfully',
-      data: session
+      message: "Appointment cancelled",
+      data: appointment
     });
   } catch (error: any) {
     res.status(400).json({
@@ -193,23 +209,25 @@ export const cancelSession = async (req: Request, res: Response) => {
   }
 };
 
-// 14.5 Complete Session
-export const completeSession = async (req: Request, res: Response) => {
+// Complete Appointment
+export const completeAppointment = async (
+  req: Request,
+  res: Response
+) => {
   try {
-    const userId = "temp-user-id"; // Temporary - replace with real user ID later
-    const { id } = req.params;
-    const { sessionNotes } = req.body;
-    
-    const session = await counselorService.completeSession(
-      id,
-      userId,
-      sessionNotes
-    );
-    
+    const userId = "temp-user-id";
+
+    const appointment =
+      await counselorService.completeAppointment(
+        req.params.id,
+        userId,
+        req.body.notes
+      );
+
     res.json({
       success: true,
-      message: 'Session completed successfully',
-      data: session
+      message: "Appointment completed",
+      data: appointment
     });
   } catch (error: any) {
     res.status(400).json({
