@@ -5,6 +5,8 @@ import { toNodeHandler } from "better-auth/node";
 import { auth } from "./lib/auth";
 import progressRoutes from "./routes/index";
 import journalRoutes from "./routes/journal.routes";
+import { isAuth } from "./middleware/isAuth";
+import { getProfile, updateProfile, getProfileDetails } from "./controllers/auth.controller";
 
 
 const app: Application = express();
@@ -25,7 +27,12 @@ app.use(cors({
 
 app.use(helmet());     
 
-// Auth routes
+// Custom auth routes (MUST be before BetterAuth catch-all)
+app.get("/api/auth/me", isAuth, getProfile);
+app.put("/api/auth/profile", isAuth, updateProfile);
+app.get("/api/auth/profile/details", isAuth, getProfileDetails);
+
+// Auth routes (BetterAuth catch-all)
 app.all("/api/auth/*", (req, res) => toNodeHandler(auth)(req, res));
 
 app.get("/", (req: Request, res: Response) => {
