@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 
 const focusAreas = [
   {
@@ -54,39 +55,45 @@ const focusAreas = [
 
 export default function CustomizePage() {
   const router = useRouter();
+  const { updateProfile } = useAuth();
   const [selectedArea, setSelectedArea] = useState<string | null>(null);
   const [supportPerson, setSupportPerson] = useState(true);
   const [supporterEmail, setSupporterEmail] = useState('');
   const [agreedTerms, setAgreedTerms] = useState(false);
   const [agreedData, setAgreedData] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSubmit = async () => {
     if (!selectedArea) {
-      alert('Please select an area of focus');
+      setError('Please select an area of focus');
       return;
     }
     if (!agreedTerms) {
-      alert('Please agree to the Terms & Conditions');
+      setError('Please agree to the Terms & Conditions');
       return;
     }
 
     setIsLoading(true);
+    setError('');
 
-    // TODO: Connect to backend API
-    const data = {
-      focusArea: selectedArea,
-      supportPerson: supportPerson ? supporterEmail : null,
-      agreedTerms,
-      agreedData,
-    };
-    console.log('Customization data:', data);
-    localStorage.setItem('selectedAddiction', JSON.stringify([selectedArea]));
+    try {
+      // Save addiction type and recovery start to user profile
+      await updateProfile({
+        addictionTypes: [selectedArea],
+        recoveryStart: new Date().toISOString(),
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      });
 
-    setTimeout(() => {
+      // Also store locally for quick access
+      localStorage.setItem('selectedAddiction', JSON.stringify([selectedArea]));
+
+      router.push('/dashboard');
+    } catch (err: any) {
+      setError(err.message || 'Failed to save preferences. Please try again.');
+    } finally {
       setIsLoading(false);
-      router.push('/login');
-    }, 1000);
+    }
   };
 
   return (
@@ -99,13 +106,8 @@ export default function CustomizePage() {
 
         <div>
           {/* Brand */}
-          <div className="flex items-center gap-2 mb-10">
-            <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
-              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <span className="font-bold text-lg tracking-wide">Recoverly</span>
+          <div className="mb-10">
+            <img src="/images/logo.svg" alt="ReLife" className="h-10 brightness-0 invert" />
           </div>
 
           {/* Motivational text */}
@@ -137,7 +139,7 @@ export default function CustomizePage() {
 
         {/* Footer */}
         <p className="text-white/40 text-xs mt-8">
-          &copy; 2026 Recoverly. HIPAA Compliant &amp; Secure.
+          &copy; 2026 ReLife. HIPAA Compliant &amp; Secure.
         </p>
       </div>
 
@@ -154,6 +156,12 @@ export default function CustomizePage() {
 
           <h1 className="text-2xl font-bold text-gray-900 mb-1">Personalize Your Path</h1>
           <p className="text-gray-500 text-sm mb-6">Tell us what you&apos;re focusing on for a tailored experience.</p>
+
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">
+              {error}
+            </div>
+          )}
 
           {/* Area of Focus */}
           <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
