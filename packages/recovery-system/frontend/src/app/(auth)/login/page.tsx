@@ -2,25 +2,32 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 
 export default function LoginPage() {
+  const router = useRouter();
+  const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
     setIsLoading(true);
 
-    // TODO: Connect to backend API
-    console.log('Login attempt:', { email, password });
-
-    setTimeout(() => {
+    try {
+      await signIn(email, password);
+      router.push('/dashboard');
+    } catch (err: any) {
+      setError(err.message || 'Invalid email or password. Please try again.');
+    } finally {
       setIsLoading(false);
-      alert('Login functionality will be connected to backend');
-    }, 1000);
+    }
   };
 
   return (
@@ -33,18 +40,13 @@ export default function LoginPage() {
 
         <div>
           {/* Brand */}
-          <div className="flex items-center gap-2 mb-10">
-            <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
-              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <span className="font-bold text-lg tracking-wide">Recoverly</span>
+          <div className="mb-10">
+            <img src="/images/logo.svg" alt="ReLife" className="h-10 brightness-0 invert" />
           </div>
 
           {/* Motivational text */}
           <h2 className="text-[28px] font-bold leading-tight mb-4">
-            Welcome back to your sanctuary.
+            Welcome back to your journey.
           </h2>
           <p className="text-white/70 text-sm leading-relaxed">
             Recovery is a journey of a thousand small victories. Let&apos;s add another one today.
@@ -72,7 +74,7 @@ export default function LoginPage() {
 
         {/* Footer */}
         <p className="text-white/40 text-xs mt-4">
-          &copy; 2026 Recoverly. HIPAA Compliant &amp; Secure.
+          &copy; 2026 ReLife. HIPAA Compliant &amp; Secure.
         </p>
       </div>
 
@@ -81,6 +83,12 @@ export default function LoginPage() {
         <div className="max-w-md mx-auto w-full">
           <h1 className="text-2xl font-bold text-gray-900 mb-1">Login</h1>
           <p className="text-gray-500 text-sm mb-8">Please enter your details to continue</p>
+
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">
+              {error}
+            </div>
+          )}
 
           {/* Social Login */}
           <div className="grid grid-cols-2 gap-3 mb-6">
@@ -130,9 +138,12 @@ export default function LoginPage() {
                   </svg>
                 </span>
                 <input
+                  id="email"
+                  name="email"
                   type="email"
+                  autoComplete="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => { setEmail(e.target.value); setError(''); }}
                   className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl bg-[#F7FBFE] focus:ring-2 focus:ring-[#40738E] focus:border-transparent outline-none transition text-sm"
                   placeholder="jbfhe@gmail.com"
                   required
@@ -157,9 +168,12 @@ export default function LoginPage() {
                   </svg>
                 </span>
                 <input
+                  id="password"
+                  name="password"
                   type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => { setPassword(e.target.value); setError(''); }}
                   className="w-full pl-10 pr-10 py-3 border border-gray-200 rounded-xl bg-[#F7FBFE] focus:ring-2 focus:ring-[#40738E] focus:border-transparent outline-none transition text-sm"
                   placeholder="••••••"
                   required

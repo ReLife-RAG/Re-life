@@ -3,9 +3,11 @@
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 
 export default function SignupPage() {
   const router = useRouter();
+  const { signUp } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -14,31 +16,44 @@ export default function SignupPage() {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
     });
+    setError('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
 
     if (formData.password !== formData.confirmPassword) {
-      alert('Passwords do not match!');
+      setError('Passwords do not match!');
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      setError('Password must be at least 6 characters');
       return;
     }
 
     setIsLoading(true);
 
-    // TODO: Connect to backend API
-    console.log('Signup attempt:', formData);
-
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      await signUp(
+        formData.name || 'Anonymous',
+        formData.email,
+        formData.password
+      );
       router.push('/signup/customize');
-    }, 1000);
+    } catch (err: any) {
+      setError(err.message || 'Failed to create account. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const passwordStrength = useMemo(() => {
@@ -65,13 +80,8 @@ export default function SignupPage() {
 
         <div>
           {/* Brand */}
-          <div className="flex items-center gap-2 mb-10">
-            <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
-              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <span className="font-bold text-lg tracking-wide">Recoverly</span>
+          <div className="mb-10">
+            <img src="/images/logo.svg" alt="ReLife" className="h-10 brightness-0 invert" />
           </div>
 
           {/* Motivational text */}
@@ -103,7 +113,7 @@ export default function SignupPage() {
 
         {/* Footer */}
         <p className="text-white/40 text-xs mt-8">
-          &copy; 2026 Recoverly. HIPAA Compliant &amp; Secure.
+          &copy; 2026 ReLife. HIPAA Compliant &amp; Secure.
         </p>
       </div>
 
@@ -112,6 +122,12 @@ export default function SignupPage() {
         <div className="max-w-md mx-auto w-full">
           <h1 className="text-2xl font-bold text-gray-900 mb-1">Create Account</h1>
           <p className="text-gray-500 text-sm mb-8">Let&apos;s get the basics sorted first.</p>
+
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">
+              {error}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Full Name */}
@@ -126,8 +142,10 @@ export default function SignupPage() {
                   </svg>
                 </span>
                 <input
+                  id="name"
                   name="name"
                   type="text"
+                  autoComplete="name"
                   value={formData.name}
                   onChange={handleChange}
                   className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl bg-[#F7FBFE] focus:ring-2 focus:ring-[#40738E] focus:border-transparent outline-none transition text-sm"
@@ -148,8 +166,10 @@ export default function SignupPage() {
                   </svg>
                 </span>
                 <input
+                  id="email"
                   name="email"
                   type="email"
+                  autoComplete="email"
                   value={formData.email}
                   onChange={handleChange}
                   className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl bg-[#F7FBFE] focus:ring-2 focus:ring-[#40738E] focus:border-transparent outline-none transition text-sm"
@@ -172,8 +192,10 @@ export default function SignupPage() {
                     </svg>
                   </span>
                   <input
+                    id="password"
                     name="password"
                     type={showPassword ? 'text' : 'password'}
+                    autoComplete="new-password"
                     value={formData.password}
                     onChange={handleChange}
                     className="w-full pl-10 pr-10 py-3 border border-gray-200 rounded-xl bg-[#F7FBFE] focus:ring-2 focus:ring-[#40738E] focus:border-transparent outline-none transition text-sm"
@@ -211,8 +233,10 @@ export default function SignupPage() {
                     </svg>
                   </span>
                   <input
+                    id="confirmPassword"
                     name="confirmPassword"
                     type="password"
+                    autoComplete="new-password"
                     value={formData.confirmPassword}
                     onChange={handleChange}
                     className={`w-full pl-10 pr-4 py-3 border rounded-xl bg-[#F7FBFE] focus:ring-2 focus:ring-[#40738E] focus:border-transparent outline-none transition text-sm ${
