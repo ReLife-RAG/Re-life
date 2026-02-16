@@ -37,6 +37,9 @@ const SplashScreen = () => {
          -------------------------------------------------- */}
       <div className="relative z-10 flex flex-col items-center text-center max-w-4xl">
         
+        {/* ReLife Logo */}
+        <img src="/images/logo.svg" alt="ReLife - Chaos to Crown" className="h-16 md:h-20 brightness-0 invert mb-8" />
+
         {/* Main Headline */}
         <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-4">
           Your AI Powered Companion <br /> for Addiction Recovery
