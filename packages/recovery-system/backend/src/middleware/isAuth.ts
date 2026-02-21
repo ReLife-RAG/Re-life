@@ -14,7 +14,7 @@ export const isAuth = async (req: Request, res: Response, next: NextFunction) =>
 
         (req as any).user = session.user;
         (req as any).session = session.session;
-        
+
         return next();
     } catch (error) {
         return res.status(500).json({ error: "Auth Error" });
