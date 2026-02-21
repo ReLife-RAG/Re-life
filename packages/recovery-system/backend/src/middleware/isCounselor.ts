@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
+import User from '../models/User';
 
-export const isCounselor = (req: Request, res: Response, next: NextFunction) => {
+export const isCounselor = async (req: Request, res: Response, next: NextFunction) => {
 
     // Get user from request (set by isAuth middleware)
     const user = (req as any).user;
@@ -10,8 +11,15 @@ export const isCounselor = (req: Request, res: Response, next: NextFunction) => 
         return res.status(401).json({ error: 'Unauthorized' });
     }
 
+    // Fetch full user from database to get role
+    const fullUser = await User.findById(user.id);
+
+    if (!fullUser) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+
     // If user role is not counselor, deny access
-    if (user.role !== 'counselor') {
+    if (fullUser.role !== 'counselor') {
         return res.status(403).json({ error: 'Access denied. Counselor role required' });
     }
 
