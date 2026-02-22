@@ -32,10 +32,13 @@ export function ValidationCredentials(credentials: any) {
     if (!credentials.degree) {
         errors.push('degree is required')
     }
-    else if (credentials.degree.lenght < 3) {
+    else if (typeof credentials.degree !== 'string') {
+        errors.push('degree must be a string')
+    }
+    else if (credentials.degree.length < 3) {
         errors.push('degree must be at least 3 characters long')
     }
-    else if (credentials.degree.lenght > 200) {
+    else if (credentials.degree.length > 200) {
         errors.push('degree must be at most 200 characters long')
     }
 
