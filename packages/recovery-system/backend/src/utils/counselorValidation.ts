@@ -54,7 +54,7 @@ export function ValidationCredentials(credentials: any) {
         errors.push('years of experience cannot be negative')
     }
     else if (credentials.yearsOfExperience > 70) {
-        errors.push('years of experipence cannot exceed 70')
+        errors.push('years of experience cannot exceed 70')
     }
 
     return errors;
