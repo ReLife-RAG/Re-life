@@ -1,25 +1,4 @@
-const ALLOWED_SPECIALIZATIONS = [
-    'addiction',
-    'substance_abuse',
-    'alcohol_dependency',
-    'drug_addiction',
-    'behavioral_addiction',
-    'social_media_addiction',
-    'pornography_addiction',
-    'trauma',
-    'ptsd',
-    'anxiety',
-    'depression',
-    'stress_management',
-    'family_therapy',
-    'group_therapy',
-    'relapse_prevention',
-    'dual_diagnosis',
-    'teen_counseling',
-    'adult_counseling',
-    'elderly_care',
-    'other',
-];
+import { ALLOWED_SPECIALIZATIONS } from '../models/Counselor';
 
 export function ValidationCredentials(credentials: any) {
     const errors: string[] = [];
