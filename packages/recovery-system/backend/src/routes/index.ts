@@ -12,5 +12,6 @@ const router = express.Router();
 router.post('/progress/checkin', isAuth, progressController.dailyCheckIn);
 router.get('/progress/streak', isAuth, progressController.getStreak);
 router.get('/progress/mood-history', isAuth, progressController.getMoodHistory);
+router.get('/progress/history', isAuth, progressController.getHistory);
 
 export default router;

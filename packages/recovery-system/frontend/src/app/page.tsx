@@ -37,6 +37,9 @@ const SplashScreen = () => {
          -------------------------------------------------- */}
       <div className="relative z-10 flex flex-col items-center text-center max-w-4xl">
         
+        {/* ReLife Logo */}
+        <img src="/images/logo.svg" alt="ReLife - Chaos to Crown" className="h-16 md:h-20 brightness-0 invert mb-8" />
+
         {/* Main Headline */}
         <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-4">
           Your AI Powered Companion <br /> for Addiction Recovery
@@ -47,9 +50,9 @@ const SplashScreen = () => {
           24/7 personalized support using advanced RAG technology and evidence-based therapy
         </p>
 
-        {/* PRIMARY ACTION BUTTON -> Goes to Questionnaire */}
-        <Link href="/Questionnaire"> 
-          <button className="bg-[#E5E5E5] hover:bg-white text-black font-medium py-3 px-10 rounded-full transition-all duration-300 text-lg shadow-lg mb-4">
+        {/* PRIMARY ACTION BUTTON -> Goes to Signup */}
+        <Link href="/signup"> 
+          <button className="bg-[#8CD092] hover:bg-[#7ac085] text-black font-medium py-3 px-10 rounded-full transition-all duration-300 text-lg shadow-lg mb-4">
             Start Recovery Journey
           </button>
         </Link>

@@ -225,3 +225,74 @@ export const getMoodHistory = async (req: Request, res: Response): Promise<Respo
     });
   }
 };
+
+// GET /api/progress/history
+// 7.4 Get Streak History - Calendar visualization format
+export const getHistory = async (req: Request, res: Response): Promise<Response | void> => {
+  try {
+    const userId = (req as any).user.id;
+    const { days } = req.query; // Optional: filter last N days (default: 90)
+    const filterDays = days ? Number(days) : 90;
+
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ 
+        message: 'Invalid user ID format' 
+      });
+    }
+
+    const progress = await Progress.findOne({ userId });
+
+    if (!progress) {
+      return res.status(404).json({
+        message: 'No check-in history found',
+        dates: [],
+        calendar: {},
+        stats: { totalCheckIns: 0, currentStreak: 0, longestStreak: 0 }
+      });
+    }
+
+    // Filter mood log by days
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - filterDays);
+    const filteredLog = progress.moodLog.filter(entry => entry.date >= cutoffDate);
+
+    // Format data for calendar visualization
+    const dates: string[] = [];
+    const calendar: Record<string, { mood: string; hasCheckIn: boolean; notes?: string; energy?: number }> = {};
+
+    filteredLog.forEach(entry => {
+      // Format date as YYYY-MM-DD
+      const dateKey = entry.date.toISOString().split('T')[0];
+      
+      dates.push(dateKey);
+      calendar[dateKey] = {
+        mood: entry.mood,
+        hasCheckIn: true,
+        notes: entry.notes,
+        energy: entry.energy
+      };
+    });
+
+    // Get unique sorted dates
+    const uniqueDates = [...new Set(dates)].sort();
+
+    res.status(200).json({
+      dates: uniqueDates,
+      calendar,
+      stats: {
+        totalCheckIns: filteredLog.length,
+        currentStreak: progress.streak,
+        longestStreak: progress.longestStreak,
+        lastCheckIn: progress.lastCheckIn
+      }
+    });
+
+  } catch (error: any) {
+    console.error('Get history error:', error);
+    res.status(500).json({ 
+      message: 'Server error',
+      error: error.message 
+    });
+  }
+};
