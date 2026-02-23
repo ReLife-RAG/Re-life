@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { createCounselorProfile } from "../controllers/counselor.controller";
+import { createCounselorProfile } from "../controllers/Counselor.controller";
 import { isAuth } from "../middleware/isAuth";
 import { isCounselor } from "../middleware/isCounselor";
 
