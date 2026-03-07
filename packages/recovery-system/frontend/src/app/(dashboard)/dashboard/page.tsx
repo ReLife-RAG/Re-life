@@ -70,6 +70,12 @@ export default function DashboardPage() {
     },
   ];
 
+  const slideTranslates = [
+    'translate-x-0',
+    '-translate-x-full',
+    '-translate-x-[200%]',
+  ];
+
   const nextSlide = () => {
     setCurrentSlide((prev) => (prev + 1) % activityCards.length);
   };
@@ -141,8 +147,7 @@ export default function DashboardPage() {
           {/* Carousel Container */}
           <div className="overflow-hidden">
             <div
-              className="flex transition-transform duration-300 ease-out"
-              style={{ transform: `translateX(-${currentSlide * 100}%)` }}
+              className={`flex transition-transform duration-300 ease-out ${slideTranslates[currentSlide]}`}
             >
               {activityCards.map((card) => (
                 <div key={card.id} className="w-full flex-shrink-0 px-0">
@@ -170,7 +175,7 @@ export default function DashboardPage() {
                           ))}
                         </ul>
 
-                        <button className="text-blue-500 hover:text-blue-600 font-semibold flex items-center gap-2 transition">
+                        <button aria-label="Go to section" className="text-blue-500 hover:text-blue-600 font-semibold flex items-center gap-2 transition">
                           <ArrowRight className="w-4 h-4" />
                         </button>
                       </div>
@@ -184,6 +189,7 @@ export default function DashboardPage() {
           {/* Navigation Arrows */}
           <button
             onClick={prevSlide}
+            aria-label="Previous slide"
             className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-6 md:-translate-x-16 bg-blue-300 hover:bg-blue-400 text-white rounded-full p-3 shadow-md transition"
           >
             <ChevronLeft className="w-6 h-6" />
@@ -191,6 +197,7 @@ export default function DashboardPage() {
 
           <button
             onClick={nextSlide}
+            aria-label="Next slide"
             className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-6 md:translate-x-16 bg-blue-300 hover:bg-blue-400 text-white rounded-full p-3 shadow-md transition"
           >
             <ChevronRight className="w-6 h-6" />
@@ -203,6 +210,7 @@ export default function DashboardPage() {
             <button
               key={idx}
               onClick={() => setCurrentSlide(idx)}
+              aria-label={`Go to slide ${idx + 1}`}
               className={`h-2 rounded-full transition ${
                 idx === currentSlide ? 'bg-blue-500 w-8' : 'bg-gray-300 w-2'
               }`}
