@@ -1,13 +1,24 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // TODO: Replace with actual auth context when connected
+  const user = null as ({ name: string } | null);
+  const dayCount = 1;
+  const firstName = user?.name?.split(' ')[0] ?? 'User';
+  const handleSignOut = () => { router.push('/login'); };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-50 to-blue-100">
       {/* Header */}
@@ -18,31 +29,112 @@ export default function DashboardLayout({
               <div className="text-white text-2xl font-bold">🔴 RELIFE</div>
             </Link>
 
-            <nav className="hidden md:flex gap-8">
-              <Link href="/dashboard" className="text-white font-medium hover:text-blue-100 transition">
-                Home
-              </Link>
-              <Link href="/progress" className="text-white font-medium hover:text-blue-100 transition">
-                My progress
-              </Link>
-              <Link href="/community" className="text-white font-medium hover:text-blue-100 transition">
-                community
-              </Link>
-              <Link href="/support" className="text-white font-medium hover:text-blue-100 transition">
-                Support
-              </Link>
-              <Link href="/profile" className="text-white font-medium hover:text-blue-100 transition">
-                Profile
-              </Link>
+            {/* Desktop Nav */}
+            <nav className="hidden md:flex items-center gap-1">
+              {[
+                { href: '/dashboard', label: 'Dashboard' },
+                { href: '/progress', label: 'Progress' },
+                { href: '/community', label: 'Community' },
+                { href: '/counselors', label: 'Counselors' },
+                { href: '/resources', label: 'Resources' },
+                { href: '/chat', label: 'AI Chat' },
+              ].map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+                    pathname === item.href || pathname.startsWith(item.href + '/')
+                      ? 'bg-white/10 text-white'
+                      : 'text-white/60 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              ))}
             </nav>
 
-            {/* Mobile menu button */}
-            <button className="md:hidden text-white">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
+            {/* Right: notification + profile */}
+            <div className="flex items-center gap-4">
+              {/* Notification bell */}
+              <button className="relative text-white/60 hover:text-white transition" title="Notifications" aria-label="Notifications">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+                <span className="absolute -top-1 -right-1 w-2 h-2 bg-[#8CD092] rounded-full" />
+              </button>
+
+              {/* Profile */}
+              <div className="hidden sm:flex items-center gap-3">
+                <div className="text-right">
+                  <p className="text-white text-sm font-semibold leading-tight">{user?.name || 'User'}</p>
+                  <p className="text-white/50 text-xs">Day {dayCount}</p>
+                </div>
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#40738E] to-[#8CD092] flex items-center justify-center text-white font-bold text-sm">
+                  {firstName.charAt(0).toUpperCase()}
+                </div>
+              </div>
+
+              {/* Sign Out */}
+              <button
+                onClick={handleSignOut}
+                className="text-white/40 hover:text-white transition"
+                title="Sign Out"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+              </button>
+
+              {/* Mobile menu button */}
+              <button
+                className="md:hidden text-white/60 hover:text-white"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                title={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+                aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  {mobileMenuOpen ? (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  ) : (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  )}
+                </svg>
+              </button>
+            </div>
           </div>
+
+          {/* Mobile Nav */}
+          {mobileMenuOpen && (
+            <nav className="md:hidden mt-3 pt-3 border-t border-white/10 flex flex-col gap-1">
+              {[
+                { href: '/dashboard', label: 'Dashboard' },
+                { href: '/progress', label: 'Progress' },
+                { href: '/community', label: 'Community' },
+                { href: '/counselors', label: 'Counselors' },
+                { href: '/resources', label: 'Resources' },
+                { href: '/chat', label: 'AI Chat' },
+              ].map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
+                    pathname === item.href
+                      ? 'bg-white/10 text-white'
+                      : 'text-white/60 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              ))}
+              <button
+                onClick={handleSignOut}
+                className="px-3 py-2 text-left rounded-lg text-sm font-medium text-red-400 hover:bg-white/5 transition"
+              >
+                Sign Out
+              </button>
+            </nav>
+          )}
         </div>
       </header>
 
