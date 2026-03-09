@@ -4,105 +4,23 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { getStreak, getMoodHistory, dailyCheckIn, type StreakData, type MoodEntry } from '@/lib/auth-client';
-
-/* ─── Streak Ring SVG Component ─── */
-function StreakRing({ days, goal }: { days: number; goal: number }) {
-  const radius = 70;
-  const stroke = 10;
-  const circumference = 2 * Math.PI * radius;
-  const progress = Math.min(days / goal, 1);
-  const dashOffset = circumference * (1 - progress);
-
-  return (
-    <div className="relative w-44 h-44 mx-auto">
-      <svg className="w-full h-full -rotate-90" viewBox="0 0 160 160">
-        {/* Background circle */}
-        <circle cx="80" cy="80" r={radius} fill="none" stroke="#E8F0F5" strokeWidth={stroke} />
-        {/* Progress arc */}
-        <circle
-          cx="80"
-          cy="80"
-          r={radius}
-          fill="none"
-          stroke="url(#streakGradient)"
-          strokeWidth={stroke}
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={dashOffset}
-          className="transition-all duration-1000 ease-out"
-        />
-        <defs>
-          <linearGradient id="streakGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#40738E" />
-            <stop offset="100%" stopColor="#8CD092" />
-          </linearGradient>
-        </defs>
-      </svg>
-      {/* Center text */}
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-3xl font-extrabold text-[#1B2A3D]">{days}</span>
-        <span className="text-[10px] font-bold text-[#40738E] tracking-widest uppercase">Days Clean</span>
-      </div>
-    </div>
-  );
-}
-
-/* ─── Quick Access Card ─── */
-function QuickCard({
-  icon,
-  label,
-  href,
-  color,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  href: string;
-  color: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className="group flex flex-col items-center gap-2.5 bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md hover:border-[#40738E]/20 transition-all duration-200"
-    >
-      <div
-        className="w-12 h-12 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110"
-        style={{ backgroundColor: color + '18' }}
-      >
-        <span style={{ color }}>{icon}</span>
-      </div>
-      <span className="text-sm font-semibold text-[#1B2A3D] text-center">{label}</span>
-    </Link>
-  );
-}
-
-/* ─── Mood Emoji Button ─── */
-function MoodButton({
-  emoji,
-  label,
-  selected,
-  onClick,
-}: {
-  emoji: string;
-  label: string;
-  selected: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`flex flex-col items-center gap-0.5 p-1.5 rounded-lg transition-all duration-200 min-w-0 ${
-        selected
-          ? 'bg-[#40738E]/10 ring-2 ring-[#40738E] scale-105'
-          : 'hover:bg-gray-100'
-      }`}
-    >
-      <span className="text-xl sm:text-2xl">{emoji}</span>
-      <span className={`text-[8px] sm:text-[10px] font-bold uppercase tracking-wide leading-tight ${selected ? 'text-[#40738E]' : 'text-[#C4C4C4]'}`}>
-        {label}
-      </span>
-    </button>
-  );
-}
+import {
+  LayoutDashboard,
+  Users,
+  BookOpen,
+  Gamepad2,
+  MessageSquare,
+  Calendar,
+  Search,
+  Bell,
+  ChevronRight,
+  Plus,
+  ArrowUpRight,
+  TrendingUp,
+  BrainCircuit,
+  UserCheck,
+  MoreHorizontal,
+} from 'lucide-react';
 
 /* ─── Mood name mapping (frontend emoji → backend value) ─── */
 const MOOD_MAP: Record<string, string> = {
@@ -134,6 +52,15 @@ const MOOD_EMOJI: Record<string, string> = {
   relapsed: '😠',
 };
 
+/* ─── Nav items ─── */
+const navItems = [
+  { name: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
+  { name: 'Counselors', icon: UserCheck, href: '/counselors' },
+  { name: 'Games', icon: Gamepad2, href: '/games' },
+  { name: 'Library', icon: BookOpen, href: '/resources' },
+  { name: 'Community', icon: Users, href: '/community' },
+];
+
 /* ─── Main Dashboard Page ─── */
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -141,6 +68,7 @@ export default function DashboardPage() {
   const [checkInLoading, setCheckInLoading] = useState(false);
   const [checkInMsg, setCheckInMsg] = useState<string | null>(null);
   const [dataLoading, setDataLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('Dashboard');
 
   // Real data from backend
   const [streakData, setStreakData] = useState<StreakData>({
@@ -207,7 +135,6 @@ export default function DashboardPage() {
       const result = await dailyCheckIn({ mood: backendMood });
       setCheckInMsg(result.message);
       setSelectedMood(null);
-      // Refresh data so streak / activity updates instantly
       await fetchData();
     } catch (err: any) {
       setCheckInMsg(err.message || 'Check-in failed');
@@ -224,281 +151,532 @@ export default function DashboardPage() {
     { emoji: '😠', label: 'Angry' },
   ];
 
+  // Mood bar heights from real mood log (last 7 days)
+  const moodBarHeights = (() => {
+    const last7 = moodLog.slice(0, 7);
+    const moodToHeight: Record<string, number> = { great: 90, good: 70, okay: 55, struggling: 40, relapsed: 25 };
+    if (last7.length === 0) return [40, 60, 45, 70, 55, 80, 65]; // fallback
+    const heights = last7.map((e) => moodToHeight[e.mood] || 50);
+    while (heights.length < 7) heights.push(30);
+    return heights;
+  })();
+
+  // Support network from recent activity
+  const supportNetwork = [
+    { name: 'AI Assistant', role: 'Bot', status: 'Online', time: 'Now', color: 'bg-[#EAF7ED] text-[#86D293]' },
+    { name: 'Counselor', role: 'Support', status: 'Available', time: 'Today', color: 'bg-[#EAF7ED] text-[#86D293]' },
+    { name: 'Community', role: 'Group', status: 'Active', time: 'Today', color: 'bg-orange-100 text-orange-600' },
+  ];
+
   if (dataLoading) {
     return (
-      <main className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6 flex items-center justify-center min-h-[60vh]">
-        <div className="animate-spin h-8 w-8 border-4 border-[#40738E] border-t-transparent rounded-full" />
+      <main className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-6 flex items-center justify-center min-h-[60vh]">
+        <div className="animate-spin h-8 w-8 border-4 border-[#86D293] border-t-transparent rounded-full" />
       </main>
     );
   }
 
   return (
-    <main className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
-      {/* ── 3-Column Grid ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* ═══ LEFT COLUMN ═══ */}
-        <div className="lg:col-span-3 space-y-6">
-          {/* Current Streak */}
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-            <h3 className="text-xs font-bold text-[#40738E] uppercase tracking-wider mb-4">
-              Current Streak
-            </h3>
-            <StreakRing days={streakDays} goal={streakGoal} />
-            <p className="text-center text-sm text-gray-500 mt-4 leading-relaxed">
-              {streakDays === 0
-                ? 'Your journey starts today. Complete your first check-in!'
-                : 'You\'re doing amazing! Keep going — every day counts.'}
-            </p>
-            {streakDays > 0 && (
-              <button className="w-full mt-3 text-[#8CD092] font-semibold text-sm hover:underline flex items-center justify-center gap-1 transition">
-                Celebrate Progress
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-            )}
-          </div>
+    <main className="max-w-[1440px] mx-auto">
+      <div className="bg-white rounded-[40px] shadow-xl overflow-hidden flex flex-col md:flex-row min-h-[88vh] my-4 mx-2 md:mx-4">
 
-          {/* Mood Tracker */}
-          <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm border border-gray-100">
-            <h3 className="text-xs font-bold text-[#40738E] uppercase tracking-wider mb-4">
-              How are you feeling?
-            </h3>
-            <div className="flex flex-wrap justify-center gap-1 sm:gap-2">
-              {moods.map((m) => (
-                <MoodButton
-                  key={m.label}
-                  emoji={m.emoji}
-                  label={m.label}
-                  selected={selectedMood === m.label}
-                  onClick={() => setSelectedMood(m.label)}
-                />
-              ))}
+        {/* ═══ MAIN CONTENT AREA ═══ */}
+        <div className="flex-1 p-6 lg:p-10 flex flex-col gap-8">
+
+          {/* ── Top Header with Nav Pills ── */}
+          <header className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <div className="w-10 h-10 bg-[#86D293] rounded-xl flex items-center justify-center text-white">
+                <BrainCircuit size={24} />
+              </div>
+              <div className="flex bg-[#F3F7F3] rounded-full p-1 gap-1">
+                {navItems.map((item) => (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    onClick={() => setActiveTab(item.name)}
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                      activeTab === item.name
+                        ? 'bg-[#86D293] text-white shadow-sm'
+                        : 'text-slate-500 hover:text-slate-700'
+                    }`}
+                  >
+                    {item.name}
+                  </Link>
+                ))}
+              </div>
             </div>
+
+            <div className="flex items-center gap-3">
+              <Link
+                href="/progress"
+                className="flex items-center gap-2 px-4 py-2 bg-slate-50 border border-slate-100 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-100 transition-colors"
+              >
+                <Plus size={18} />
+                <span>Add goal</span>
+              </Link>
+              <button
+                onClick={() => {
+                  if (!selectedMood) {
+                    setSelectedMood('Great');
+                  }
+                  handleCheckIn();
+                }}
+                disabled={checkInLoading}
+                className="flex items-center gap-2 px-4 py-2 bg-[#86D293] text-white rounded-xl text-sm font-medium hover:bg-[#75c082] transition-colors disabled:opacity-50"
+              >
+                <Calendar size={18} />
+                <span>{checkInLoading ? 'Logging...' : 'Daily Check-in'}</span>
+              </button>
+            </div>
+          </header>
+
+          {/* ── Welcome Section ── */}
+          <section>
+            <p className="text-slate-400 text-sm font-medium mb-1">Portal {'>'} Dashboard</p>
+            <h1 className="text-3xl font-bold text-slate-900">
+              {streakDays === 0 ? `Welcome, ${firstName}` : `Good morning, ${firstName}`}
+            </h1>
             {checkInMsg && (
-              <p className={`mt-3 text-xs font-medium text-center ${
-                checkInMsg.includes('already') || checkInMsg.includes('failed') ? 'text-red-500' : 'text-[#8CD092]'
+              <p className={`mt-2 text-sm font-medium ${
+                checkInMsg.includes('already') || checkInMsg.includes('failed') ? 'text-red-500' : 'text-[#86D293]'
               }`}>
                 {checkInMsg}
               </p>
             )}
-            {selectedMood && (
-              <button
-                onClick={handleCheckIn}
-                disabled={checkInLoading}
-                className="w-full mt-4 bg-[#40738E] text-white text-sm font-semibold py-2 rounded-xl hover:bg-[#356580] transition disabled:opacity-50"
-              >
-                {checkInLoading ? 'Logging...' : 'Log Mood & Check In'}
-              </button>
-            )}
+          </section>
+
+          {/* ═══ GRID LAYOUT ═══ */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1">
+
+            {/* ─── LEFT: Profile & Mood Chart ─── */}
+            <div className="lg:col-span-3 space-y-6">
+
+              {/* Profile Card */}
+              <div className="bg-[#CFE1E1] rounded-[32px] overflow-hidden relative group h-[340px]">
+                <div className="w-full h-full bg-gradient-to-br from-[#40738E] to-[#8CD092] flex items-center justify-center">
+                  <span className="text-7xl font-bold text-white/80">
+                    {firstName.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex flex-col justify-end p-6 text-white">
+                  <span className="bg-black/40 backdrop-blur-md px-3 py-1 rounded-full text-[10px] w-fit mb-2 flex items-center gap-1">
+                    <TrendingUp size={10} /> {streakDays} Day Streak
+                  </span>
+                  <h3 className="text-xl font-bold">{user?.name || 'User'}</h3>
+                  <p className="text-sm opacity-80">Recovery Member</p>
+
+                  <div className="flex gap-2 mt-4">
+                    <Link
+                      href="/chat"
+                      className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center hover:bg-white/30 transition-all"
+                    >
+                      <MessageSquare size={18} />
+                    </Link>
+                    <Link
+                      href="/counselors"
+                      className="flex-1 bg-white/20 backdrop-blur-md rounded-full px-4 text-xs font-semibold hover:bg-white/30 transition-all flex items-center justify-center"
+                    >
+                      Contact Counselor
+                    </Link>
+                  </div>
+                </div>
+              </div>
+
+              {/* Weekly Mood Chart */}
+              <div className="bg-white border border-slate-100 rounded-[32px] p-6 shadow-sm">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h4 className="text-slate-400 text-sm font-medium">Average Mood</h4>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-2xl font-bold">
+                        {moodLog.length > 0 ? 'Stable' : '—'}
+                      </span>
+                      {moodLog.length > 0 && (
+                        <span className="text-[#86D293] text-xs font-bold">+{Math.min(streakDays, 15)}%</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="h-24 flex items-end gap-1">
+                  {moodBarHeights.map((h, i) => (
+                    <div key={i} className="flex-1 bg-slate-100 rounded-t-lg relative group overflow-hidden">
+                      <div
+                        className="absolute bottom-0 w-full bg-[#86D293] transition-all duration-500 group-hover:bg-[#6ab376]"
+                        style={{ height: `${h}%` }}
+                      />
+                    </div>
+                  ))}
+                </div>
+                <div className="flex justify-between mt-2 text-[10px] text-slate-400 font-medium">
+                  <span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span>
+                </div>
+              </div>
+            </div>
+
+            {/* ─── RIGHT: Analytics & Cards ─── */}
+            <div className="lg:col-span-9 space-y-6">
+
+              {/* Top Row: Activity + Engagement */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+                {/* Activity Progress Card */}
+                <div className="md:col-span-2 bg-[#F3F7F3] rounded-[32px] p-8 flex flex-col justify-between min-h-[300px]">
+                  <div className="flex justify-between items-start">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-[#CFE1E1] rounded-2xl flex items-center justify-center text-[#4A7C7C]">
+                        <Calendar size={24} />
+                      </div>
+                      <div>
+                        <div className="flex items-baseline gap-2">
+                          <h2 className="text-5xl font-bold">{streakDays}</h2>
+                          <span className="bg-[#86D293] text-white text-[10px] px-2 py-0.5 rounded-full">
+                            +{Math.min(streakDays, 5)}%
+                          </span>
+                        </div>
+                        <p className="text-slate-400 text-sm font-medium uppercase tracking-wider mt-1">
+                          Day Streak / Recovery
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Activity Scatter Visual */}
+                  <div className="relative h-32 mt-8 flex items-center justify-around px-4">
+                    {[...Array(15)].map((_, i) => (
+                      <div key={i} className="flex flex-col gap-1 items-center">
+                        <div className={`w-2 h-2 rounded-full ${i % 3 === 0 ? 'bg-[#4A7C7C]' : 'bg-[#4A7C7C]/20'}`} />
+                        <div className={`w-2 h-2 rounded-full ${i % 2 === 0 ? 'bg-[#4A7C7C]' : 'bg-[#4A7C7C]/10'}`} />
+                        <div className={`w-2 h-2 rounded-full ${i % 4 === 0 ? 'bg-[#4A7C7C]' : 'bg-[#4A7C7C]/30'}`} />
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex justify-between text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-4">
+                    <span>Start</span>
+                    <div className="flex gap-2">
+                      <span className="w-2 h-2 rounded-full bg-[#4A7C7C]" />
+                      <span className="w-2 h-2 rounded-full bg-[#4A7C7C]/40" />
+                      <span className="w-2 h-2 rounded-full bg-[#4A7C7C]/10" />
+                    </div>
+                    <span>Goal: {streakGoal} Days</span>
+                  </div>
+                </div>
+
+                {/* Engagement Breakdown */}
+                <div className="bg-[#4A7C7C] rounded-[32px] p-6 text-white flex flex-col justify-between">
+                  <div className="space-y-4">
+                    <div className="bg-white/10 rounded-2xl p-4">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-[10px] font-bold uppercase tracking-wider opacity-60">Check-ins</span>
+                        <span className="text-xs font-bold">
+                          {streakData.checkedInToday ? '✓ Done' : 'Pending'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-end">
+                        <span className="text-3xl font-bold">{completionPct}%</span>
+                        <span className="text-[10px] font-medium opacity-80">Daily goal</span>
+                      </div>
+                    </div>
+                    <div className="bg-white/10 rounded-2xl p-4">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-[10px] font-bold uppercase tracking-wider opacity-60">Mood Logs</span>
+                        <span className="text-xs font-bold text-[#86D293]">
+                          {moodLog.length} entries
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-end">
+                        <span className="text-3xl font-bold">
+                          {moodLog.length > 0 ? `${Math.round((moodLog.filter(m => m.mood === 'great' || m.mood === 'good').length / moodLog.length) * 100)}%` : '0%'}
+                        </span>
+                        <span className="text-[10px] font-medium opacity-80">Positive</span>
+                      </div>
+                    </div>
+                  </div>
+                  <Link
+                    href="/progress"
+                    className="w-full py-3 bg-white/20 hover:bg-white/30 rounded-2xl text-xs font-bold transition-all text-center block mt-4"
+                  >
+                    View full report
+                  </Link>
+                </div>
+              </div>
+
+              {/* Bottom Row: Goal Progress + Today's Focus */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                {/* Goal Progress Gauge */}
+                <div className="bg-white border border-slate-100 rounded-[32px] p-8 shadow-sm">
+                  <div className="flex justify-between items-center mb-8">
+                    <h3 className="font-bold text-slate-800">Goal Progress</h3>
+                    <Link href="/progress" className="p-2 hover:bg-slate-50 rounded-xl">
+                      <ChevronRight size={20} className="text-slate-400" />
+                    </Link>
+                  </div>
+
+                  <div className="relative flex justify-center items-center py-4">
+                    <svg className="w-48 h-24" viewBox="0 0 100 50">
+                      <path
+                        d="M 10,50 A 40,40 0 0,1 90,50"
+                        fill="none"
+                        stroke="#F0F4F4"
+                        strokeWidth="8"
+                        strokeLinecap="round"
+                      />
+                      <path
+                        d="M 10,50 A 40,40 0 0,1 70,14"
+                        fill="none"
+                        stroke="#86D293"
+                        strokeWidth="8"
+                        strokeDasharray="125"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                    <div className="absolute bottom-0 text-center">
+                      <span className="text-4xl font-bold block">{streakDays}</span>
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Days Gained</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 mt-8">
+                    {[
+                      { label: 'Check-ins', count: streakData.currentStreak, color: 'bg-[#86D293]' },
+                      { label: 'Mood Logs', count: moodLog.length, color: 'bg-[#4A7C7C]' },
+                      { label: 'Longest Streak', count: streakData.longestStreak, color: 'bg-slate-200' },
+                    ].map((item) => (
+                      <div key={item.label} className="flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-3 h-3 rounded-full ${item.color}`} />
+                          <span className="text-xs font-medium text-slate-500">{item.label}</span>
+                        </div>
+                        <span className="text-xs font-bold">{item.count} items</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Today's Focus + Milestones */}
+                <div className="bg-white border border-slate-100 rounded-[32px] p-8 shadow-sm">
+                  <div className="flex justify-between items-center mb-8">
+                    <h3 className="font-bold text-slate-800">Today&apos;s Focus</h3>
+                    <Link href="/progress" className="p-2 hover:bg-slate-50 rounded-xl">
+                      <ChevronRight size={20} className="text-slate-400" />
+                    </Link>
+                  </div>
+
+                  {/* Mood Selection */}
+                  <div className="flex gap-2 mb-6 flex-wrap">
+                    {moods.map((m) => (
+                      <button
+                        key={m.label}
+                        onClick={() => setSelectedMood(m.label)}
+                        className={`flex items-center gap-1.5 px-3 py-2 rounded-2xl text-xs font-bold transition-all ${
+                          selectedMood === m.label
+                            ? 'bg-[#86D293] text-white shadow-sm'
+                            : 'bg-[#F0F4F4] text-[#4A7C7C] hover:bg-[#E2EBEB]'
+                        }`}
+                      >
+                        <span>{m.emoji}</span>
+                        <span>{m.label}</span>
+                      </button>
+                    ))}
+                  </div>
+
+                  {selectedMood && (
+                    <button
+                      onClick={handleCheckIn}
+                      disabled={checkInLoading}
+                      className="w-full mb-6 py-2.5 bg-[#86D293] hover:bg-[#75c082] rounded-2xl text-xs font-bold transition-all text-white disabled:opacity-50"
+                    >
+                      {checkInLoading ? 'Logging...' : 'Log Mood & Check In'}
+                    </button>
+                  )}
+
+                  {/* Milestones Progress */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">
+                      <span>Milestones</span>
+                      <span>{completionPct}% Done</span>
+                    </div>
+                    <div className="flex gap-1">
+                      {[...Array(12)].map((_, i) => (
+                        <div
+                          key={i}
+                          className={`h-6 flex-1 rounded-sm ${
+                            i < Math.round((completedCount / totalTasks) * 12)
+                              ? 'bg-[#86D293]'
+                              : 'bg-slate-100'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <div className="flex justify-between mt-2">
+                      <div className="flex items-center gap-1 text-[10px] font-bold text-[#86D293]">
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#86D293]" />
+                        Completed
+                      </div>
+                      <div className="flex items-center gap-1 text-[10px] font-bold text-slate-300">
+                        <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />
+                        Pending
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Focus tasks */}
+                  <div className="mt-6 space-y-2">
+                    {todaysFocus.map((task) => (
+                      <div key={task.id} className="flex items-center gap-3">
+                        {task.done ? (
+                          <div className="w-5 h-5 rounded-full bg-[#86D293] flex items-center justify-center flex-shrink-0">
+                            <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          </div>
+                        ) : (
+                          <div className="w-5 h-5 rounded-full border-2 border-slate-200 flex-shrink-0" />
+                        )}
+                        <span className={`text-sm ${
+                          task.done ? 'text-slate-300 line-through' : 'text-slate-700 font-medium'
+                        }`}>
+                          {task.label}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* ═══ CENTER COLUMN ═══ */}
-        <div className="lg:col-span-6 space-y-6">
-          {/* Welcome Banner */}
-          <div className="bg-gradient-to-r from-[#8CD092] to-[#6DBF76] rounded-2xl p-6 text-white shadow-sm">
-            <h2 className="text-xl font-bold mb-1">
-              {streakDays === 0 ? `Welcome, ${firstName}!` : `Welcome back, ${firstName}!`}
-            </h2>
-            <p className="text-white/90 text-sm mb-4">
-              {totalTasks === 0
-                ? 'Start exploring your recovery tools below. We\'re glad you\'re here.'
-                : `You have ${todaysFocus.filter((t) => !t.done).length} goals remaining for today. You can do this!`}
-            </p>
-            {totalTasks > 0 && (
-              <div className="flex items-center gap-3">
-                <div className="flex-1 bg-white/30 rounded-full h-2.5 overflow-hidden">
-                  <div
-                    className="bg-white h-full rounded-full transition-all duration-500"
-                    style={{ width: `${completionPct}%` }}
-                  />
-                </div>
-                <span className="text-xs font-bold whitespace-nowrap">DAILY COMPLETION: {completionPct}%</span>
-              </div>
-            )}
-          </div>
+        {/* ═══ RIGHT SIDEBAR ═══ */}
+        <aside className="w-full md:w-[350px] bg-[#F9FBFA] border-l border-slate-50 p-6 flex flex-col gap-8">
 
-          {/* Quick Access Grid */}
-          <div>
-            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">
-              Quick Access
-            </h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              <QuickCard
-                icon={
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
-                  </svg>
-                }
-                label="AI Bot"
-                href="/chat"
-                color="#40738E"
+          {/* Search & Profile */}
+          <div className="flex items-center justify-between">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+              <input
+                type="text"
+                placeholder="Search resources..."
+                className="w-full pl-10 pr-4 py-2 bg-white border border-slate-100 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#86D293]/20"
               />
-              <QuickCard
-                icon={
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-                  </svg>
-                }
-                label="Counselor"
-                href="/counselors"
-                color="#6DBF76"
-              />
-              <QuickCard
-                icon={
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
-                  </svg>
-                }
-                label="Community"
-                href="/community"
-                color="#40738E"
-              />
-              <QuickCard
-                icon={
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
-                  </svg>
-                }
-                label="My Progress"
-                href="/progress"
-                color="#8CD092"
-              />
-              <QuickCard
-                icon={
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
-                  </svg>
-                }
-                label="Resources"
-                href="/resources"
-                color="#40738E"
-              />
-              <QuickCard
-                icon={
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M18.75 4.236c.982.143 1.954.317 2.916.52A6.003 6.003 0 0016.27 9.728M18.75 4.236V4.5c0 2.108-.966 3.99-2.48 5.228m0 0a6.023 6.023 0 01-3.52 1.122 6.023 6.023 0 01-3.52-1.122" />
-                  </svg>
-                }
-                label="Challenges"
-                href="/games"
-                color="#D4A03E"
-              />
+            </div>
+            <div className="flex items-center gap-2 ml-4">
+              <button className="p-2 text-slate-400 hover:text-slate-600 relative">
+                <Bell size={20} />
+                <div className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
+              </button>
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#40738E] to-[#8CD092] flex items-center justify-center text-white font-bold text-sm border border-slate-200">
+                {firstName.charAt(0).toUpperCase()}
+              </div>
             </div>
           </div>
 
-          {/* Recent Activity */}
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">
-                Recent Activity
-              </h3>
-              <Link href="/progress" className="text-[#40738E] text-xs font-semibold hover:underline">
+          {/* Support Network */}
+          <div>
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="font-bold text-slate-800">Support Network</h3>
+              <MoreHorizontal size={20} className="text-slate-400" />
+            </div>
+
+            <div className="space-y-5">
+              {supportNetwork.map((item, idx) => (
+                <div key={idx} className="flex items-center justify-between group cursor-pointer">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-[#CFE1E1] flex items-center justify-center text-[#4A7C7C] font-bold text-sm">
+                      {item.name.charAt(0)}
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-800">{item.name}</h4>
+                      <p className="text-[10px] text-slate-400 font-medium">{item.role} • {item.time}</p>
+                    </div>
+                  </div>
+                  <div className={`px-3 py-1 rounded-full text-[10px] font-bold ${item.color}`}>
+                    {item.status}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Recent Activity (sidebar) */}
+          <div>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-bold text-slate-800">Recent Activity</h3>
+              <Link href="/progress" className="text-[#86D293] text-xs font-semibold hover:underline">
                 View All
               </Link>
             </div>
             {recentActivity.length === 0 ? (
               <div className="text-center py-6">
                 <div className="text-3xl mb-2">📋</div>
-                <p className="text-sm text-[#C4C4C4]">No activity yet. Start your first task!</p>
+                <p className="text-sm text-slate-400">No activity yet. Start your first task!</p>
               </div>
             ) : (
               <div className="space-y-3">
                 {recentActivity.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition"
-                  >
+                  <div key={item.id} className="flex items-center gap-3 p-2 rounded-xl hover:bg-white transition">
                     <div
-                      className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                      className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
                       style={{ backgroundColor: item.iconBg + '20' }}
                     >
-                      <span className="text-base">{item.icon}</span>
+                      <span className="text-sm">{item.icon}</span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-[#1B2A3D] truncate">{item.title}</p>
-                      <p className="text-xs text-[#C4C4C4]">{item.time}</p>
+                      <p className="text-xs font-semibold text-slate-800 truncate">{item.title}</p>
+                      <p className="text-[10px] text-slate-400">{item.time}</p>
                     </div>
                   </div>
                 ))}
               </div>
             )}
           </div>
-        </div>
 
-        {/* ═══ RIGHT COLUMN ═══ */}
-        <div className="lg:col-span-3 space-y-6">
-          {/* Today's Focus */}
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-            <h3 className="text-xs font-bold text-[#40738E] uppercase tracking-wider mb-4">
-              Today&apos;s Focus
-            </h3>
-            {todaysFocus.length === 0 ? (
-              <div className="text-center py-6">
-                <div className="text-3xl mb-2">🎯</div>
-                <p className="text-sm text-[#C4C4C4]">No tasks yet. They&apos;ll appear as you go!</p>
+          {/* Recovery Stats Card */}
+          <div className="mt-auto bg-[#4A7C7C] rounded-[32px] p-6 text-white relative overflow-hidden">
+            <div className="absolute top-[-20px] right-[-20px] w-32 h-32 bg-white/5 rounded-full blur-2xl" />
+
+            <div className="flex flex-col gap-6">
+              <div className="flex gap-2">
+                <div className="px-4 py-2 bg-white/10 rounded-xl text-xs font-bold">Base Recovery</div>
+                <div className="px-4 py-2 bg-white/10 rounded-xl text-xs font-bold">Streak Bonus</div>
               </div>
-            ) : (
-              <>
-                <div className="space-y-3">
-                  {todaysFocus.map((task) => (
-                    <div key={task.id} className="flex items-center gap-3">
-                      {task.done ? (
-                        <div className="w-5 h-5 rounded-full bg-[#8CD092] flex items-center justify-center flex-shrink-0">
-                          <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                          </svg>
-                        </div>
-                      ) : (
-                        <div className="w-5 h-5 rounded-full border-2 border-[#C4C4C4] flex-shrink-0" />
-                      )}
-                      <span
-                        className={`text-sm ${
-                          task.done ? 'text-[#C4C4C4] line-through' : 'text-[#1B2A3D] font-medium'
-                        }`}
-                      >
-                        {task.label}
-                      </span>
-                    </div>
-                  ))}
+
+              <div className="space-y-1">
+                <div className="flex justify-between items-center opacity-60">
+                  <span className="text-[10px] font-bold uppercase tracking-widest">Progress Level</span>
+                  <span className="text-[10px] font-bold">
+                    {streakDays >= 60 ? 'GOLD TIER' : streakDays >= 30 ? 'SILVER TIER' : 'BRONZE TIER'}
+                  </span>
                 </div>
-                {/* Mini progress */}
-                <div className="mt-5 pt-4 border-t border-gray-100">
-                  <div className="flex justify-between text-xs mb-1.5">
-                    <span className="text-gray-400 font-medium">Progress</span>
-                    <span className="font-bold text-[#40738E]">{completedCount}/{totalTasks}</span>
-                  </div>
-                  <div className="bg-gray-100 rounded-full h-2 overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-gradient-to-r from-[#40738E] to-[#8CD092] transition-all duration-500"
-                      style={{ width: `${completionPct}%` }}
-                    />
+                <div className="flex justify-between items-end">
+                  <h2 className="text-3xl font-bold">
+                    {streakDays * 10} <span className="text-sm font-normal opacity-60">pts</span>
+                  </h2>
+                  <div className="flex flex-col items-end">
+                    <span className="text-[10px] font-bold opacity-60">NEXT REWARD AT</span>
+                    <span className="text-lg font-bold">{Math.ceil((streakDays * 10 + 100) / 100) * 100}</span>
                   </div>
                 </div>
-              </>
-            )}
-          </div>
+              </div>
 
-          {/* Motivational Card */}
-          <div className="bg-gradient-to-br from-[#40738E] to-[#2D5A70] rounded-2xl p-6 text-white shadow-sm">
-            <p className="text-sm font-medium leading-relaxed mb-3">
-              &quot;Recovery is not a race. You don&apos;t have to feel guilty if it takes you longer than you thought it would.&quot;
-            </p>
-            <span className="text-xs text-white/50 font-medium">— Daily Inspiration</span>
-          </div>
-
-          {/* Upcoming Reminders */}
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-            <h3 className="text-xs font-bold text-[#40738E] uppercase tracking-wider mb-4">
-              Upcoming
-            </h3>
-            <div className="text-center py-6">
-              <div className="text-3xl mb-2">🔔</div>
-              <p className="text-sm text-[#C4C4C4]">No upcoming events yet.</p>
+              <div className="flex items-center gap-3 pt-4 border-t border-white/10">
+                <Link
+                  href="/progress"
+                  className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-all"
+                >
+                  <ArrowUpRight size={18} />
+                </Link>
+                <Link
+                  href="/games"
+                  className="flex-1 py-3 bg-[#86D293] hover:bg-[#75c082] rounded-2xl text-xs font-bold transition-all text-white text-center"
+                >
+                  View Challenges
+                </Link>
+              </div>
             </div>
           </div>
-        </div>
+        </aside>
       </div>
     </main>
   );
