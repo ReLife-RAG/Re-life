@@ -266,3 +266,121 @@ export async function dailyCheckIn(data: {
 
   return json;
 }
+
+// ─── Step 8: Mood Tracking API Functions ─────────────────────────
+
+export interface MoodDataEntry {
+  date: string;
+  mood: string;
+  score: number | null;
+  notes?: string;
+}
+
+export interface MoodDataResponse {
+  entries: MoodDataEntry[];
+  averageScore: number;
+  totalEntries: number;
+}
+
+export interface MoodAnalyticsResponse {
+  trends: {
+    sevenDay: { average: number | null; entries: number } | null;
+    thirtyDay: { average: number | null; entries: number } | null;
+    direction: 'improving' | 'declining' | 'stable' | 'insufficient_data';
+  };
+  patterns: {
+    moodDistribution: Record<string, number>;
+    mostFrequentMood: string | null;
+    dayOfWeekAverages: Record<string, number | null>;
+    bestDay: string | null;
+    worstDay: string | null;
+  };
+  totalEntries: number;
+}
+
+export interface HistoryResponse {
+  dates: string[];
+  calendar: Record<string, { mood: string; hasCheckIn: boolean; notes?: string; energy?: number }>;
+  stats: {
+    totalCheckIns: number;
+    currentStreak: number;
+    longestStreak: number;
+    lastCheckIn: string | null;
+  };
+}
+
+/**
+ * Log a mood entry (8.1)
+ */
+export async function logMood(data: { score: number; notes?: string }): Promise<{ message: string; entry: MoodDataEntry }> {
+  const res = await fetch(`${API_URL}/api/progress/mood`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(data),
+  });
+
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.message || 'Failed to log mood');
+  return json;
+}
+
+/**
+ * Get mood history with optional date range filtering (8.2)
+ */
+export async function getMoodData(params?: {
+  startDate?: string;
+  endDate?: string;
+  days?: number;
+}): Promise<MoodDataResponse> {
+  const query = new URLSearchParams();
+  if (params?.startDate) query.set('startDate', params.startDate);
+  if (params?.endDate) query.set('endDate', params.endDate);
+  if (params?.days) query.set('days', String(params.days));
+
+  const url = `${API_URL}/api/progress/mood${query.toString() ? '?' + query.toString() : ''}`;
+  const res = await fetch(url, { credentials: 'include' });
+  const json = await res.json();
+
+  if (res.status === 404) return { entries: [], averageScore: 0, totalEntries: 0 };
+  if (!res.ok) throw new Error(json.message || 'Failed to fetch mood data');
+  return json;
+}
+
+/**
+ * Get mood analytics (8.3)
+ */
+export async function getMoodAnalytics(): Promise<MoodAnalyticsResponse> {
+  const res = await fetch(`${API_URL}/api/progress/mood/analytics`, {
+    credentials: 'include',
+  });
+  const json = await res.json();
+
+  if (res.status === 404) {
+    return {
+      trends: { sevenDay: null, thirtyDay: null, direction: 'insufficient_data' },
+      patterns: { moodDistribution: {}, mostFrequentMood: null, dayOfWeekAverages: {}, bestDay: null, worstDay: null },
+      totalEntries: 0,
+    };
+  }
+  if (!res.ok) throw new Error(json.message || 'Failed to fetch mood analytics');
+  return json;
+}
+
+/**
+ * Get streak/check-in history for calendar (7.4)
+ */
+export async function getCheckInHistory(days?: number): Promise<HistoryResponse> {
+  const url = days
+    ? `${API_URL}/api/progress/history?days=${days}`
+    : `${API_URL}/api/progress/history`;
+
+  const res = await fetch(url, { credentials: 'include' });
+  const json = await res.json();
+
+  if (res.status === 404) {
+    return { dates: [], calendar: {}, stats: { totalCheckIns: 0, currentStreak: 0, longestStreak: 0, lastCheckIn: null } };
+  }
+  if (!res.ok) throw new Error(json.message || 'Failed to fetch history');
+  return json;
+}
