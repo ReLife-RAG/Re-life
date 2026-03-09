@@ -714,7 +714,7 @@ export default function DashboardPage() {
               />
             </div>
             <div className="flex items-center gap-2 ml-4">
-              <button className="p-2 text-slate-400 hover:text-slate-600 relative">
+              <button type="button" aria-label="Notifications" className="p-2 text-slate-400 hover:text-slate-600 relative">
                 <Bell size={20} />
                 <div className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
               </button>
