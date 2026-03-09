@@ -14,4 +14,9 @@ router.get('/progress/streak', isAuth, progressController.getStreak);
 router.get('/progress/mood-history', isAuth, progressController.getMoodHistory);
 router.get('/progress/history', isAuth, progressController.getHistory);
 
+//Mood Tracking Routes (Protected)
+router.post('/progress/mood', isAuth, progressController.logMood);
+router.get('/progress/mood', isAuth, progressController.getMoodData);
+router.get('/progress/mood/analytics', isAuth, progressController.getMoodAnalytics);
+
 export default router;
