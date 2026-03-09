@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
-import { getStreak, getMoodHistory, dailyCheckIn, type StreakData, type MoodEntry } from '@/lib/auth-client';
+import { getStreak, getMoodHistory, dailyCheckIn, logMood, type StreakData, type MoodEntry } from '@/lib/auth-client';
 import {
   LayoutDashboard,
   Users,
@@ -70,6 +70,13 @@ export default function DashboardPage() {
   const [dataLoading, setDataLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('Dashboard');
 
+  // Mood popup state
+  const [showMoodPopup, setShowMoodPopup] = useState(false);
+  const [popupMoodScore, setPopupMoodScore] = useState(5);
+  const [popupNotes, setPopupNotes] = useState('');
+  const [popupLoading, setPopupLoading] = useState(false);
+  const [popupMsg, setPopupMsg] = useState<string | null>(null);
+
   // Real data from backend
   const [streakData, setStreakData] = useState<StreakData>({
     currentStreak: 0,
@@ -125,6 +132,41 @@ export default function DashboardPage() {
     fetchData();
   }, [fetchData]);
 
+  // Show mood popup 1.5s after dashboard loads (only if not logged today)
+  useEffect(() => {
+    if (dataLoading) return;
+    const todayLogged = moodLog.length > 0 && new Date(moodLog[0].date).toDateString() === new Date().toDateString();
+    if (!todayLogged) {
+      const timer = setTimeout(() => setShowMoodPopup(true), 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [dataLoading, moodLog]);
+
+  // Handle mood popup submit
+  const handlePopupMoodLog = async () => {
+    setPopupLoading(true);
+    setPopupMsg(null);
+    try {
+      // Do daily check-in FIRST (sets streak=1 for new users)
+      const moodLabels: Record<number, string> = { 1: 'relapsed', 2: 'relapsed', 3: 'struggling', 4: 'struggling', 5: 'okay', 6: 'okay', 7: 'good', 8: 'good', 9: 'great', 10: 'great' };
+      try { await dailyCheckIn({ mood: moodLabels[popupMoodScore] || 'okay', energy: popupMoodScore, notes: popupNotes || undefined }); } catch {}
+      // Then log the mood entry
+      const result = await logMood({ score: popupMoodScore, notes: popupNotes || undefined });
+      setPopupMsg('Mood logged & checked in! \uD83C\uDF1F');
+      await fetchData();
+      setTimeout(() => {
+        setShowMoodPopup(false);
+        setPopupMsg(null);
+        setPopupNotes('');
+        setPopupMoodScore(5);
+      }, 1200);
+    } catch (err: any) {
+      setPopupMsg(err.message);
+    } finally {
+      setPopupLoading(false);
+    }
+  };
+
   // ── Handle mood check-in ──
   const handleCheckIn = async () => {
     if (!selectedMood) return;
@@ -168,6 +210,8 @@ export default function DashboardPage() {
     { name: 'Community', role: 'Group', status: 'Active', time: 'Today', color: 'bg-orange-100 text-orange-600' },
   ];
 
+  const SCORE_EMOJI = ['', '😞', '😞', '😢', '😢', '😐', '😐', '🙂', '🙂', '😄', '😄'];
+
   if (dataLoading) {
     return (
       <main className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-6 flex items-center justify-center min-h-[60vh]">
@@ -178,6 +222,114 @@ export default function DashboardPage() {
 
   return (
     <main className="max-w-[1440px] mx-auto">
+
+      {/* ═══ MOOD POPUP MODAL ═══ */}
+      {showMoodPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white rounded-3xl shadow-2xl w-[90%] max-w-md p-8 relative animate-scaleIn">
+            {/* Close button */}
+            <button
+              onClick={() => setShowMoodPopup(false)}
+              className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition"
+            >
+              ✕
+            </button>
+
+            {/* Header */}
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-[#F3F7F3] rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-4xl">{SCORE_EMOJI[popupMoodScore]}</span>
+              </div>
+              <h2 className="text-2xl font-bold text-slate-900">How are you feeling today?</h2>
+              <p className="text-sm text-slate-400 mt-1">Take a moment to check in with yourself</p>
+            </div>
+
+            {/* Score slider */}
+            <div className="mb-5">
+              <input
+                type="range"
+                min={1}
+                max={10}
+                value={popupMoodScore}
+                onChange={(e) => setPopupMoodScore(Number(e.target.value))}
+                className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-[#86D293]"
+              />
+              <div className="flex justify-between mt-2 text-xs text-slate-400">
+                <span>😞 Low</span>
+                <span className="font-bold text-lg text-slate-700">{popupMoodScore}/10</span>
+                <span>😄 Great</span>
+              </div>
+            </div>
+
+            {/* Quick mood buttons */}
+            <div className="flex justify-center gap-2 mb-5">
+              {[{s:2,e:'😞',l:'Bad'},{s:4,e:'😢',l:'Low'},{s:6,e:'😐',l:'Okay'},{s:8,e:'🙂',l:'Good'},{s:10,e:'😄',l:'Great'}].map(m => (
+                <button
+                  key={m.s}
+                  onClick={() => setPopupMoodScore(m.s)}
+                  className={`flex flex-col items-center gap-1 px-3 py-2 rounded-2xl text-xs font-bold transition-all ${
+                    popupMoodScore === m.s
+                      ? 'bg-[#86D293] text-white shadow-md scale-110'
+                      : 'bg-[#F0F4F4] text-[#4A7C7C] hover:bg-[#E2EBEB]'
+                  }`}
+                >
+                  <span className="text-lg">{m.e}</span>
+                  <span>{m.l}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Notes */}
+            <textarea
+              value={popupNotes}
+              onChange={(e) => setPopupNotes(e.target.value)}
+              placeholder="Any thoughts? (optional)"
+              maxLength={500}
+              rows={2}
+              className="w-full px-4 py-3 border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-[#86D293]/30 resize-none mb-4"
+            />
+
+            {/* Submit */}
+            <button
+              onClick={handlePopupMoodLog}
+              disabled={popupLoading}
+              className="w-full py-3 bg-[#86D293] hover:bg-[#75c082] text-white rounded-2xl font-bold text-sm transition disabled:opacity-50"
+            >
+              {popupLoading ? 'Logging...' : 'Log My Mood ✨'}
+            </button>
+
+            {popupMsg && (
+              <p className={`mt-3 text-center text-sm font-medium ${
+                popupMsg.includes('successfully') ? 'text-green-600' : 'text-red-500'
+              }`}>
+                {popupMsg}
+              </p>
+            )}
+
+            {/* Skip */}
+            <button
+              onClick={() => setShowMoodPopup(false)}
+              className="w-full mt-2 py-2 text-slate-400 text-xs font-medium hover:text-slate-600 transition"
+            >
+              Skip for now
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Popup animations */}
+      <style jsx>{`
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes scaleIn {
+          from { opacity: 0; transform: scale(0.9) translateY(20px); }
+          to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .animate-fadeIn { animation: fadeIn 0.3s ease-out; }
+        .animate-scaleIn { animation: scaleIn 0.4s ease-out; }
+      `}</style>
       <div className="bg-white rounded-[40px] shadow-xl overflow-hidden flex flex-col md:flex-row min-h-[88vh] my-4 mx-2 md:mx-4">
 
         {/* ═══ MAIN CONTENT AREA ═══ */}
