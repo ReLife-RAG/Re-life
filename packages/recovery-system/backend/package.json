@@ -11,6 +11,7 @@
     "test": "jest"
   },
   "dependencies": {
+    "@umeshindu222/apisnap": "^1.0.1",
     "axios": "^1.13.5",
     "better-auth": "^1.4.17",
     "cloudinary": "^2.9.0",

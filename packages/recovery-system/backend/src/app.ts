@@ -9,6 +9,9 @@ import communityRoutes from "./routes/community.routes";
 import counselorRoutes from "./routes/counselor.routes";
 import { isAuth } from "./middleware/isAuth";
 import { getProfile, updateProfile, getProfileDetails } from "./controllers/auth.controller";
+// import apisnap from '@umeshindu222/apisnap';
+
+
 
 
 const app: Application = express();
@@ -34,6 +37,7 @@ app.get("/api/auth/me", isAuth, getProfile);
 app.put("/api/auth/profile", isAuth, updateProfile);
 app.get("/api/auth/profile/details", isAuth, getProfileDetails);
 
+
 // Auth routes (BetterAuth catch-all)
 app.all("/api/auth/*", (req, res) => toNodeHandler(auth)(req, res));
 
@@ -53,6 +57,8 @@ app.use('/api/community', communityRoutes);
 // Counselor Routes
 app.use('/api', counselorRoutes);
 
+// apisnap.init(app);
+
 // 404 Handler
 app.use((req: Request, res: Response) => {
   res.status(404).json({
@@ -69,5 +75,6 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
     error: process.env.NODE_ENV === 'development' ? err.stack : {}
   });
 });
+
 
 export default app;
