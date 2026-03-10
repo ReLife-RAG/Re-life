@@ -25,6 +25,11 @@ venv/
 env/
 ENV/
 .venv
+.venv/
+
+# uv package manager
+uv.lock
+.python-version
 
 # Environment Variables
 .env
