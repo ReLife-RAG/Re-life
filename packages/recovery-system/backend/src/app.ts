@@ -9,6 +9,7 @@ import communityRoutes from "./routes/community.routes";
 import counselorRoutes from "./routes/counselor.routes";
 import { isAuth } from "./middleware/isAuth";
 import { getProfile, updateProfile, getProfileDetails } from "./controllers/auth.controller";
+import chatRoutes from "./routes/chat.routes";
 // import apisnap from '@umeshindu222/apisnap';
 
 
@@ -56,6 +57,9 @@ app.use('/api/community', communityRoutes);
 
 // Counselor Routes
 app.use('/api', counselorRoutes);
+
+// Chat Routes
+app.use('/api/chat', chatRoutes);
 
 // apisnap.init(app);
 
