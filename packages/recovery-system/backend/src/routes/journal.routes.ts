@@ -3,6 +3,7 @@ import { createEntry, getEntries, getEntryById, updateEntry, deleteEntry } from 
 import upload from '../services/upload.service';
 import { isAuth } from '../middleware/isAuth'; // Temporarily disabled for testing
 
+
 const router = Router();
 
 // todo - Add isAuth middleware once authentication is implemented
