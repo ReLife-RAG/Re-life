@@ -10,6 +10,7 @@ import counselorRoutes from "./routes/counselor.routes";
 import { isAuth } from "./middleware/isAuth";
 import { getProfile, updateProfile, getProfileDetails } from "./controllers/auth.controller";
 import chatRoutes from "./routes/chat.routes";
+import analyzer from 'express-api-timer';
 // import apisnap from '@umeshindu222/apisnap';
 
 
@@ -18,6 +19,7 @@ import chatRoutes from "./routes/chat.routes";
 const app: Application = express();
 
 app.use(express.json());
+app.use(analyzer.monitor({ slowThreshold: 300 }));
 
 // CORS Configuration
 // TODO: In production, change 'origin' to specific domain (e.g., 'https://relife.com') 
