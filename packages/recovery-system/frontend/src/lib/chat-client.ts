@@ -18,8 +18,8 @@ export const chatService = {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
+      credentials: "include", // Send cookies for authentication
       body: JSON.stringify({ message }),
     });
 
@@ -32,9 +32,7 @@ export const chatService = {
 
   async getChatHistory(): Promise<{ messages: ChatMessage[] }> {
     const response = await fetch(`${API_URL}/api/chat/history`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
+      credentials: "include", // Send cookies for authentication
     });
 
     if (!response.ok) {
