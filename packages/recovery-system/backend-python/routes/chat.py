@@ -20,13 +20,18 @@ async def send_message(chat_message: ChatMessage):
         conversation_context = memory_service.get_recent_context(user_id, num_messages=10)
 
         # Retrieve relevant documents from Pinecone
-        retrieved_docs = rag_service.retrieve_context(message)
+        try:
+            retrieved_docs = rag_service.retrieve_context(message)
+            knowledge_context = "\n\n".join([doc["content"] for doc in retrieved_docs])
+        except Exception as e:
+            print(f"Warning: Failed to retrieve from Pinecone: {str(e)}")
+            retrieved_docs = []
+            knowledge_context = ""
 
         # Combine retrieved context
-        knowledge_context = "\n\n".join([doc["content"] for doc in retrieved_docs])
-
-        # Add conversation history to context
-        full_context = f"{conversation_context}\n\nKNOWLEDGE BASE:\n{knowledge_context}"
+        full_context = conversation_context
+        if knowledge_context:
+            full_context = f"{conversation_context}\n\nKNOWLEDGE BASE:\n{knowledge_context}"
 
         # Generate response with LLM
         response = rag_service.generate_response(

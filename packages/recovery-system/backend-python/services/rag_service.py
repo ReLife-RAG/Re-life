@@ -22,7 +22,8 @@ class RAGService:
         # Initialize vector store
         self.vector_store = PineconeVectorStore(
             index_name=self.index_name,
-            embedding=self.embeddings
+            embedding=self.embeddings,
+            pinecone_api_key=settings.PINECONE_API_KEY
         )
 
         # Initialize LLM

@@ -12,15 +12,18 @@ class Settings(BaseSettings):
 
     # Pinecone
     PINECONE_API_KEY: str
-    PINECONE_ENVIRONMENT: str
     PINECONE_INDEX_NAME: str
+    PINECONE_HOST: str = "https://relife-index-bhjhk7z.svc.aped-4627-b74a.pinecone.io"
 
     # Google Generative AI
     GOOGLE_API_KEY: str
-    MODEL_NAME: str = "gemini-1.5-pro"
+    MODEL_NAME: str = "gemini-2.5-flash"
 
     # Embeddings
     EMBEDDING_MODEL: str = "sentence-transformers/all-MiniLM-L6-v2"
+
+    # Express Backend
+    EXPRESS_BACKEND_URL: str = "http://localhost:5000"
 
     # RAG Configuration
     CHUNK_SIZE: int = 1000
