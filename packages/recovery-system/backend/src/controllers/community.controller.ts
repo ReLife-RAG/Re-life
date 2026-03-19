@@ -365,3 +365,268 @@ export const deletePost = async (req: Request, res: Response) => {
     });
   }
 };
+
+// ═══════════════════════════════════════════════════════════════════
+// ─── LIKE ENDPOINTS ───
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * LIKE/UNLIKE POST
+ * POST /api/community/:postId/like
+ */
+export const toggleLike = async (req: Request, res: Response) => {
+  try {
+    const { postId } = req.params;
+    const user = req.user;
+
+    if (!user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const post = await CommunityPost.findById(postId);
+
+    if (!post) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+
+    const userIdStr = user.id;
+    const isLiked = post.likes.includes(userIdStr);
+
+    if (isLiked) {
+      // Unlike
+      post.likes = post.likes.filter((id) => id !== userIdStr);
+    } else {
+      // Like
+      post.likes.push(user.id);
+    }
+
+    await post.save();
+    await post.populate("authorId", "name email");
+
+    const formattedPost = formatPostResponse(post, user.id);
+
+    res.status(200).json({
+      success: true,
+      message: isLiked ? "Post unliked" : "Post liked",
+      isLiked: !isLiked,
+      post: formattedPost,
+    });
+  } catch (error) {
+    console.error("Toggle like error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to toggle like",
+    });
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// ─── SAVE ENDPOINTS ───
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * SAVE/UNSAVE POST
+ * POST /api/community/:postId/save
+ */
+export const toggleSave = async (req: Request, res: Response) => {
+  try {
+    const { postId } = req.params;
+    const user = req.user;
+
+    if (!user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const post = await CommunityPost.findById(postId);
+
+    if (!post) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+
+    const userIdStr = user.id;
+    const isSaved = post.savedBy.includes(userIdStr);
+
+    if (isSaved) {
+      // Unsave
+      post.savedBy = post.savedBy.filter((id) => id !== userIdStr);
+    } else {
+      // Save
+      post.savedBy.push(user.id);
+    }
+
+    await post.save();
+    await post.populate("authorId", "name email");
+
+    const formattedPost = formatPostResponse(post, user.id);
+
+    res.status(200).json({
+      success: true,
+      message: isSaved ? "Post unsaved" : "Post saved",
+      isSaved: !isSaved,
+      post: formattedPost,
+    });
+  } catch (error) {
+    console.error("Toggle save error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to toggle save",
+    });
+  }
+};
+
+/**
+ * GET SAVED POSTS
+ * GET /api/community/saved-posts
+ */
+export const getSavedPosts = async (req: Request, res: Response) => {
+  try {
+    const user = req.user;
+
+    if (!user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const posts = await CommunityPost.find({ savedBy: user.id })
+      .sort({ createdAt: -1 })
+      .populate("authorId", "name email")
+      .select("-__v");
+
+    const formattedPosts = posts.map((post) =>
+      formatPostResponse(post, user.id)
+    );
+
+    res.status(200).json({
+      success: true,
+      posts: formattedPosts,
+    });
+  } catch (error) {
+    console.error("Get saved posts error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to load saved posts",
+    });
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// ─── COMMENT ENDPOINTS ───
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * ADD COMMENT TO POST
+ * POST /api/community/:postId/comment
+ * Body: { content: "comment text" }
+ */
+export const addComment = async (req: Request, res: Response) => {
+  try {
+    const { postId } = req.params;
+    const { content } = req.body;
+    const user = req.user;
+
+    if (!user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    if (!content || content.trim().length < 2) {
+      return res.status(400).json({
+        message: "Comment must be at least 2 characters",
+      });
+    }
+
+    if (content.trim().length > 500) {
+      return res.status(400).json({
+        message: "Comment must not exceed 500 characters",
+      });
+    }
+
+    const post = await CommunityPost.findById(postId);
+
+    if (!post) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+
+    // ─── Add Comment ───
+    const newComment = {
+      userId: user.id,
+      authorName: user.name,
+      content: content.trim(),
+      createdAt: new Date(),
+    };
+
+    post.comments.push(newComment);
+    await post.save();
+    await post.populate("authorId", "name email");
+
+    const formattedPost = formatPostResponse(post, user.id);
+
+    res.status(201).json({
+      success: true,
+      message: "Comment added",
+      post: formattedPost,
+    });
+  } catch (error) {
+    console.error("Add comment error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to add comment",
+    });
+  }
+};
+
+/**
+ * DELETE COMMENT (only by comment author)
+ * DELETE /api/community/:postId/comment/:commentId
+ */
+export const deleteComment = async (req: Request, res: Response) => {
+  try {
+    const { postId, commentId } = req.params;
+    const user = req.user;
+
+    if (!user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const post = await CommunityPost.findById(postId);
+
+    if (!post) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+
+    // ─── Find Comment ───
+    const comment = post.comments.find(
+      (c) => c._id?.toString() === commentId
+    );
+
+    if (!comment) {
+      return res.status(404).json({ message: "Comment not found" });
+    }
+
+    // ─── Check Authorization ───
+    if (comment.userId !== user.id) {
+      return res.status(403).json({
+        message: "You can only delete your own comments",
+      });
+    }
+
+    // ─── Delete Comment ───
+    post.comments = post.comments.filter(
+      (c) => c._id?.toString() !== commentId
+    );
+    await post.save();
+    await post.populate("authorId", "name email");
+
+    const formattedPost = formatPostResponse(post, user.id);
+
+    res.status(200).json({
+      success: true,
+      message: "Comment deleted",
+      post: formattedPost,
+    });
+  } catch (error) {
+    console.error("Delete comment error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to delete comment",
+    });
+  }
+};
