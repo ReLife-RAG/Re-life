@@ -5,10 +5,6 @@ import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { getStreak, getMoodHistory, dailyCheckIn, logMood, type StreakData, type MoodEntry } from '@/lib/auth-client';
 import {
-  LayoutDashboard,
-  Users,
-  BookOpen,
-  Gamepad2,
   MessageSquare,
   Calendar,
   Search,
@@ -17,8 +13,6 @@ import {
   Plus,
   ArrowUpRight,
   TrendingUp,
-  BrainCircuit,
-  UserCheck,
   MoreHorizontal,
 } from 'lucide-react';
 
@@ -52,15 +46,6 @@ const MOOD_EMOJI: Record<string, string> = {
   relapsed: '😠',
 };
 
-/* ─── Nav items ─── */
-const navItems = [
-  { name: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
-  { name: 'Counselors', icon: UserCheck, href: '/counselors' },
-  { name: 'Games', icon: Gamepad2, href: '/games' },
-  { name: 'Library', icon: BookOpen, href: '/resources' },
-  { name: 'Community', icon: Users, href: '/community' },
-];
-
 /* ─── Main Dashboard Page ─── */
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -68,7 +53,6 @@ export default function DashboardPage() {
   const [checkInLoading, setCheckInLoading] = useState(false);
   const [checkInMsg, setCheckInMsg] = useState<string | null>(null);
   const [dataLoading, setDataLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('Dashboard');
 
   // Mood popup state
   const [showMoodPopup, setShowMoodPopup] = useState(false);
@@ -221,8 +205,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <main className="max-w-[1440px] mx-auto">
-
+    <>
       {/* ═══ MOOD POPUP MODAL ═══ */}
       {showMoodPopup && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-fadeIn">
@@ -252,6 +235,7 @@ export default function DashboardPage() {
                 max={10}
                 value={popupMoodScore}
                 onChange={(e) => setPopupMoodScore(Number(e.target.value))}
+                aria-label="Mood score slider from 1 to 10"
                 className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-[#86D293]"
               />
               <div className="flex justify-between mt-2 text-xs text-slate-400">
@@ -330,58 +314,34 @@ export default function DashboardPage() {
         .animate-fadeIn { animation: fadeIn 0.3s ease-out; }
         .animate-scaleIn { animation: scaleIn 0.4s ease-out; }
       `}</style>
-      <div className="bg-white rounded-[40px] shadow-xl overflow-hidden flex flex-col md:flex-row min-h-[88vh] my-4 mx-2 md:mx-4">
 
+      {/* ═══ LAYOUT: MAIN CONTENT + SIDEBAR ═══ */}
+      <div className="flex flex-col md:flex-row gap-8">
         {/* ═══ MAIN CONTENT AREA ═══ */}
-        <div className="flex-1 p-6 lg:p-10 flex flex-col gap-8">
-
-          {/* ── Top Header with Nav Pills ── */}
-          <header className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-[#86D293] rounded-xl flex items-center justify-center text-white">
-                <BrainCircuit size={24} />
-              </div>
-              <div className="flex bg-[#F3F7F3] rounded-full p-1 gap-1">
-                {navItems.map((item) => (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    onClick={() => setActiveTab(item.name)}
-                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                      activeTab === item.name
-                        ? 'bg-[#86D293] text-white shadow-sm'
-                        : 'text-slate-500 hover:text-slate-700'
-                    }`}
-                  >
-                    {item.name}
-                  </Link>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <Link
-                href="/progress"
-                className="flex items-center gap-2 px-4 py-2 bg-slate-50 border border-slate-100 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-100 transition-colors"
-              >
-                <Plus size={18} />
-                <span>Add goal</span>
-              </Link>
-              <button
-                onClick={() => {
-                  if (!selectedMood) {
-                    setSelectedMood('Great');
-                  }
-                  handleCheckIn();
-                }}
-                disabled={checkInLoading}
-                className="flex items-center gap-2 px-4 py-2 bg-[#86D293] text-white rounded-xl text-sm font-medium hover:bg-[#75c082] transition-colors disabled:opacity-50"
-              >
-                <Calendar size={18} />
-                <span>{checkInLoading ? 'Logging...' : 'Daily Check-in'}</span>
-              </button>
-            </div>
-          </header>
+        <div className="flex-1 flex flex-col gap-8">
+          {/* ── Actions Header ── */}
+          <div className="flex items-center justify-end gap-3">
+            <Link
+              href="/progress"
+              className="flex items-center gap-2 px-4 py-2 bg-slate-50 border border-slate-100 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-100 transition-colors"
+            >
+              <Plus size={18} />
+              <span>Add goal</span>
+            </Link>
+            <button
+              onClick={() => {
+                if (!selectedMood) {
+                  setSelectedMood('Great');
+                }
+                handleCheckIn();
+              }}
+              disabled={checkInLoading}
+              className="flex items-center gap-2 px-4 py-2 bg-[#86D293] text-white rounded-xl text-sm font-medium hover:bg-[#75c082] transition-colors disabled:opacity-50"
+            >
+              <Calendar size={18} />
+              <span>{checkInLoading ? 'Logging...' : 'Daily Check-in'}</span>
+            </button>
+          </div>
 
           {/* ── Welcome Section ── */}
           <section>
@@ -830,6 +790,6 @@ export default function DashboardPage() {
           </div>
         </aside>
       </div>
-    </main>
-  );
-}
+      </>
+    );
+  }
