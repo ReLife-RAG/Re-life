@@ -9,7 +9,7 @@ import communityRoutes from "./routes/community.routes";
 import counselorRoutes from "./routes/counselor.routes";
 import bookingRoutes from "./routes/booking.routes";
 import { isAuth } from "./middleware/isAuth";
-import { getProfile, updateProfile, getProfileDetails } from "./controllers/auth.controller";
+import { getProfile, updateProfile, getProfileDetails, signUp } from "./controllers/auth.controller";
 import chatRoutes from "./routes/chat.routes";
 
 
@@ -37,6 +37,7 @@ app.use(helmet());
 app.get("/api/auth/me", isAuth, getProfile);
 app.put("/api/auth/profile", isAuth, updateProfile);
 app.get("/api/auth/profile/details", isAuth, getProfileDetails);
+app.post("/api/auth/register", signUp);
 
 
 // Auth routes (BetterAuth catch-all)
