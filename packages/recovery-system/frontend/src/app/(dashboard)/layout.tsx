@@ -64,6 +64,7 @@ export default function DashboardLayout({
             <nav className="hidden md:flex items-center gap-1">
               {[
                 { href: '/dashboard', label: 'Dashboard' },
+                { href: '/games', label: 'Games' },
                 { href: '/progress', label: 'Progress' },
                 { href: '/community', label: 'Community' },
                 { href: '/resources', label: 'Resources' },
@@ -137,6 +138,7 @@ export default function DashboardLayout({
             <nav className="md:hidden mt-3 pt-3 border-t border-white/10 flex flex-col gap-1">
               {[
                 { href: '/dashboard', label: 'Dashboard' },
+                { href: '/games', label: 'Games' },
                 { href: '/progress', label: 'Progress' },
                 { href: '/community', label: 'Community' },
                 { href: '/resources', label: 'Resources' },
