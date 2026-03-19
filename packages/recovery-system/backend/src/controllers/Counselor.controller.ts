@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import Counselor from '../models/Counselor';
+import User from '../models/User';
 import { ValidationCredentials, ValidateSpecialization, validationBio } from '../utils/counselorValidation';
 
 // POST /api/counselors
@@ -115,12 +116,14 @@ export const getCounselorProfile = async (req: Request, res: Response) => {
  */
 export const getAllCounselors = async (req: Request, res: Response) => {
     try {
-        const { specialty, isVerified } = req.query;
+        const { specialty, specializations, isVerified } = req.query;
 
         const filters: any = { isActive: true };
 
-        if (specialty) {
-            filters.specializations = (specialty as string).toLowerCase();
+        // Support both 'specialty' and 'specializations' query params
+        const specParam = (specialty || specializations) as string;
+        if (specParam) {
+            filters.specializations = { $in: [specParam.toLowerCase()] };
         }
 
         if (isVerified !== undefined) {
@@ -137,9 +140,12 @@ export const getAllCounselors = async (req: Request, res: Response) => {
             count: counselors.length,
             counselors,
         });
-    } catch (error) {
-        console.error('Error fetching counselors:', error);
-        return res.status(500).json({ error: 'Failed to fetch counselors' });
+    } catch (error: any) {
+        console.error('Error fetching counselors:', error.message || error);
+        return res.status(500).json({ 
+            error: 'Failed to fetch counselors',
+            details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
     }
 };
 
