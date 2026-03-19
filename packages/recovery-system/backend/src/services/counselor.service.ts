@@ -92,27 +92,29 @@ export class CounselorService {
     slotStart: Date,
     slotEnd: Date
   ): Promise<void> {
-    const result = await Counselor.findByIdAndUpdate(
-      counselorId,
-      {
-        $set: {
-          'availableSlots.$[elem].isBooked': true,
-        },
-      },
-      {
-        arrayFilters: [
-          {
-            $and: [
-              { 'elem.start': slotStart },
-              { 'elem.end': slotEnd },
-            ],
+    try {
+      const result = await Counselor.findByIdAndUpdate(
+        counselorId,
+        {
+          $set: {
+            'availableSlots.$[elem].isBooked': true,
           },
-        ],
-      }
-    );
+        },
+        {
+          arrayFilters: [
+            {
+              'elem.start': new Date(slotStart),
+              'elem.end': new Date(slotEnd),
+            },
+          ],
+        }
+      );
 
-    if (!result) {
-      throw { status: 400, message: 'Slot not found or already booked' };
+      if (!result) {
+        throw new Error('Slot not found or already booked');
+      }
+    } catch (error: any) {
+      throw { status: 400, message: 'Failed to mark slot as booked: ' + error.message };
     }
   }
 
@@ -124,27 +126,30 @@ export class CounselorService {
     slotStart: Date,
     slotEnd: Date
   ): Promise<void> {
-    const result = await Counselor.findByIdAndUpdate(
-      counselorId,
-      {
-        $set: {
-          'availableSlots.$[elem].isBooked': false,
-        },
-      },
-      {
-        arrayFilters: [
-          {
-            $and: [
-              { 'elem.start': slotStart },
-              { 'elem.end': slotEnd },
-            ],
+    try {
+      // Use $elemMatch for more reliable date comparison
+      const result = await Counselor.findByIdAndUpdate(
+        counselorId,
+        {
+          $set: {
+            'availableSlots.$[elem].isBooked': false,
           },
-        ],
-      }
-    );
+        },
+        {
+          arrayFilters: [
+            {
+              'elem.start': new Date(slotStart),
+              'elem.end': new Date(slotEnd),
+            },
+          ],
+        }
+      );
 
-    if (!result) {
-      throw { status: 400, message: 'Slot not found' };
+      if (!result) {
+        throw new Error('Slot not found');
+      }
+    } catch (error: any) {
+      throw { status: 400, message: 'Failed to mark slot as available: ' + error.message };
     }
   }
 
