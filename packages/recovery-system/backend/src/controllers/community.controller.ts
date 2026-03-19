@@ -4,60 +4,69 @@ import CommunityPost from "../models/Community";
 declare global {
   namespace Express {
     interface Request {
-      user?: { name: string; _id: string };
+      user?: { id: string; name: string; email: string };
     }
   }
 }
 
-// helper: random anonymous name
+// ═══════════════════════════════════════════════════════════════════
+// ─── HELPER FUNCTIONS ───
+// ═══════════════════════════════════════════════════════════════════
+
+// Generate random anonymous name
 const generateAlias = () => {
-  const adjectives = ["Quiet", "Calm", "Brave", "Wise"];
-  const animals = ["Owl", "Fox", "Wolf", "Eagle"];
+  const adjectives = [
+    "Quiet",
+    "Calm",
+    "Brave",
+    "Wise",
+    "Silent",
+    "Gentle",
+    "Strong",
+    "Hopeful",
+    "Bright",
+    "Clear",
+  ];
+  const animals = [
+    "Owl",
+    "Fox",
+    "Wolf",
+    "Eagle",
+    "Deer",
+    "Hawk",
+    "Bear",
+    "Dove",
+    "Phoenix",
+    "Swan",
+  ];
+  const randomNum = Math.floor(Math.random() * 9000) + 1000; // 1000-9999
 
   return (
     adjectives[Math.floor(Math.random() * adjectives.length)] +
     "-" +
-    animals[Math.floor(Math.random() * animals.length)]
+    animals[Math.floor(Math.random() * animals.length)] +
+    "#" +
+    randomNum
   );
 };
 
-// CREATE POST
-export const createPost = async (req: Request, res: Response) => {
-  try {
-    const { content, category, isAnonymous } = req.body;
+// Format post response (hide authorId if anonymous)
+const formatPostResponse = (post: any, userId?: string) => {
+  const postObj = post.toObject ? post.toObject() : post;
 
-    // user comes from isAuth middleware
-    const user = req.user;
-    if (!user) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
-
-    const authorName = isAnonymous
-      ? generateAlias()
-      : user.name;
-
-    const post = await CommunityPost.create({
-      content,
-      category,
-      isAnonymous,
-      authorName,
-      likes: [],
-    });
-
-    res.status(201).json(post);
-  } catch (error) {
-    res.status(500).json({ message: "Failed to create post" });
+  // Hide author details if anonymous
+  if (postObj.isAnonymous) {
+    delete postObj.authorId;
   }
-};
 
-// GET FEED (newest first)
-export const getFeed = async (req: Request, res: Response) => {
-  try {
-    const posts = await CommunityPost.find()
-      .sort({ createdAt: -1 });
-
-    res.status(200).json(posts);
-  } catch (error) {
-    res.status(500).json({ message: "Failed to load feed" });
-  }
+  // Add helpful fields
+  return {
+    ...postObj,
+    likeCount: postObj.likes.length,
+    commentCount: postObj.comments.length,
+    saveCount: postObj.savedBy.length,
+    isLikedByUser: userId ? postObj.likes.includes(userId) : false,
+    isSavedByUser: userId ? postObj.savedBy.includes(userId) : false,
+    isAuthor: userId ? postObj.authorId === userId : false,
+  };
 };
