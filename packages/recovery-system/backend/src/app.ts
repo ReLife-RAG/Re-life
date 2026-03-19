@@ -69,6 +69,7 @@ app.use('/api/games', gamesRoutes);
 
 // apisnap.init(app);
 
+
 // 404 Handler
 app.use((req: Request, res: Response) => {
   res.status(404).json({
