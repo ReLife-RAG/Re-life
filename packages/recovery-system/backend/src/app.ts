@@ -10,7 +10,8 @@ import counselorRoutes from "./routes/counselor.routes";
 import { isAuth } from "./middleware/isAuth";
 import { getProfile, updateProfile, getProfileDetails } from "./controllers/auth.controller";
 import chatRoutes from "./routes/chat.routes";
-import analyzer from 'express-api-timer';
+import gamesRoutes from "./routes/games.routes";
+//import analyzer from 'express-api-timer';
 // import apisnap from '@umeshindu222/apisnap';
 
 
@@ -19,7 +20,7 @@ import analyzer from 'express-api-timer';
 const app: Application = express();
 
 app.use(express.json());
-app.use(analyzer.monitor({ slowThreshold: 300 }));
+//app.use(analyzer.monitor({ slowThreshold: 300 }));
 
 // CORS Configuration
 // TODO: In production, change 'origin' to specific domain (e.g., 'https://relife.com') 
@@ -58,10 +59,13 @@ app.use('/api', journalRoutes);
 app.use('/api/community', communityRoutes);
 
 // Counselor Routes
-app.use('/api', counselorRoutes);
+app.use('/api/counselor', counselorRoutes);
 
 // Chat Routes
 app.use('/api/chat', chatRoutes);
+
+// Games Routes
+app.use('/api/games', gamesRoutes);
 
 // apisnap.init(app);
 
