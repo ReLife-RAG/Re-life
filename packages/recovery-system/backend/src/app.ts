@@ -7,6 +7,7 @@ import progressRoutes from "./routes/index";
 import journalRoutes from "./routes/journal.routes";
 import communityRoutes from "./routes/community.routes";
 import counselorRoutes from "./routes/counselor.routes";
+import bookingRoutes from "./routes/booking.routes";
 import { isAuth } from "./middleware/isAuth";
 import { getProfile, updateProfile, getProfileDetails } from "./controllers/auth.controller";
 import chatRoutes from "./routes/chat.routes";
@@ -41,7 +42,7 @@ app.get("/api/auth/profile/details", isAuth, getProfileDetails);
 // Auth routes (BetterAuth catch-all)
 app.all("/api/auth/*", (req, res) => toNodeHandler(auth)(req, res));
 
-app.get("/", (req: Request, res: Response) => {
+app.get("/", (_req: Request, res: Response) => {
   res.status(200).send("Re-Life API is running...");
 });
 
@@ -57,6 +58,9 @@ app.use('/api/community', communityRoutes);
 // Counselor Routes
 app.use('/api', counselorRoutes);
 
+// Booking Routes
+app.use('/api', bookingRoutes);
+
 // Chat Routes
 app.use('/api/chat', chatRoutes);
 
@@ -71,7 +75,7 @@ app.use((req: Request, res: Response) => {
 });
 
 // Global Error Handler
-app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   console.error('Error:', err);
   res.status(err.status || 500).json({
     message: err.message || 'Internal Server Error',

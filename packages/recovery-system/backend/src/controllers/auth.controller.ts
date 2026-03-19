@@ -24,9 +24,9 @@ export const getProfile = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    res.json({ user: fullUser });
+    return res.json({ user: fullUser });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to get profile' });
+    return res.status(500).json({ error: 'Failed to get profile' });
   }
 };
 
@@ -74,9 +74,9 @@ export const updateProfile = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    res.json({ user: updatedUser, message: 'Profile updated successfully' });
+    return res.json({ user: updatedUser, message: 'Profile updated successfully' });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to update profile' });
+    return res.status(500).json({ error: 'Failed to update profile' });
   }
 };
 
@@ -100,8 +100,8 @@ export const getProfileDetails = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'User profile not found' });
     }
 
-    res.json({ profile: userProfile });
+    return res.json({ profile: userProfile });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to get profile details' });
+    return res.status(500).json({ error: 'Failed to get profile details' });
   }
 };

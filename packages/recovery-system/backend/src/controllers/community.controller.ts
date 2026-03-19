@@ -44,14 +44,14 @@ export const createPost = async (req: Request, res: Response) => {
       likes: [],
     });
 
-    res.status(201).json(post);
+    return res.status(201).json(post);
   } catch (error) {
-    res.status(500).json({ message: "Failed to create post" });
+    return res.status(500).json({ message: "Failed to create post" });
   }
 };
 
 // GET FEED (newest first)
-export const getFeed = async (req: Request, res: Response) => {
+export const getFeed = async (_req: Request, res: Response) => {
   try {
     const posts = await CommunityPost.find()
       .sort({ createdAt: -1 });
