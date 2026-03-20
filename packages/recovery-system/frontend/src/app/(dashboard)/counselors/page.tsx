@@ -62,7 +62,7 @@ export default function CounselorsPage() {
     <div className="min-h-screen bg-gray-50">
 
       {/* ── Page Body ─────────────────────────────────────────────────────── */}
-      <div className="max-w-5xl mx-auto px-6 py-8">
+      <div className="max-w-5xl mx-auto px-4 md:px-6 py-6 md:py-8">
 
         {/* Breadcrumb — "Portal > Counseling" for navigation context */}
         <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-3">
@@ -72,8 +72,8 @@ export default function CounselorsPage() {
         </div>
 
         {/* Page title + tab toggle in the same row */}
-        <div className="flex items-end justify-between mb-7">
-          <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Find Your Guide</h1>
+        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between mb-7">
+          <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Find Your Guide</h1>
           <CounselorPageToggle activeTab={activeTab} onTabChange={setActiveTab} />
         </div>
 
@@ -82,9 +82,11 @@ export default function CounselorsPage() {
             The grid re-renders automatically when filters change (via useMemo).
         ── */}
         {activeTab === "find" ? (
-          <div className="flex gap-8">
+          <div className="flex flex-col lg:flex-row gap-8">
             {/* Filter sidebar — receives current filters and updates them via onChange */}
-            <CounselorFilters filters={filters} onChange={setFilters} />
+            <div className="hidden lg:block">
+              <CounselorFilters filters={filters} onChange={setFilters} />
+            </div>
 
             <div className="flex-1">
               {/* Dynamic result count above the grid */}
@@ -106,7 +108,7 @@ export default function CounselorsPage() {
               ) : (
                 /* 2-column grid of counselor cards.
                    onBook sets selectedCounselor which triggers the modal to open. */
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {filteredCounselors.map((counselor) => (
                     <CounselorCard
                       key={counselor.id}
@@ -159,8 +161,8 @@ export default function CounselorsPage() {
           Auto-dismisses after 4 seconds via setTimeout in handleConfirmBooking.
       ── */}
       {bookingSuccess && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-gray-900 text-white px-5 py-3 rounded-full text-sm font-medium shadow-xl flex items-center gap-2 animate-bounce">
-          <span className="w-5 h-5 rounded-full bg-[#4caf7d] flex items-center justify-center">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-gray-900 text-white px-4 md:px-5 py-3 rounded-full text-xs md:text-sm font-medium shadow-xl flex items-center gap-2 animate-bounce mx-4">
+          <span className="w-5 h-5 rounded-full bg-[#4caf7d] flex items-center justify-center flex-shrink-0">
             <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
             </svg>

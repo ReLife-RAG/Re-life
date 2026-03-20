@@ -35,7 +35,7 @@ export const createEntry = async (req: Request, res: Response) => {
     });
 
     const savedEntry = await newJournal.save();
-    res.status(201).json(savedEntry);
+    return res.status(201).json(savedEntry);
 
   } catch (error) {
     console.error('Create journal error:', error);
@@ -78,7 +78,7 @@ export const getEntries = async (req: Request, res: Response) => {
 
     const total = await Journal.countDocuments(query);
 
-    res.status(200).json({
+    return res.status(200).json({
       entries,
       pagination: {
         page: pageNum,
@@ -114,7 +114,7 @@ export const getEntryById = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Entry not found' });
     }
 
-    res.status(200).json(entry);
+    return res.status(200).json(entry);
   } catch (error) {
     console.error('Get entry error:', error);
     return res.status(500).json({ message: 'Failed to fetch entry', error: error instanceof Error ? error.message : 'Unknown error' });
@@ -156,7 +156,7 @@ export const updateEntry = async (req: Request, res: Response) => {
     }
 
     const updatedEntry = await entry.save();
-    res.status(200).json(updatedEntry);
+    return res.status(200).json(updatedEntry);
   } catch (error) {
     console.error('Update entry error:', error);
     return res.status(500).json({ message: 'Failed to update entry', error: error instanceof Error ? error.message : 'Unknown error' });
@@ -184,7 +184,7 @@ export const deleteEntry = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Entry not found' });
     }
 
-    res.status(200).json({ message: 'Entry deleted successfully' });
+    return res.status(200).json({ message: 'Entry deleted successfully' });
   } catch (error) {
     console.error('Delete entry error:', error);
     return res.status(500).json({ message: 'Failed to delete entry', error: error instanceof Error ? error.message : 'Unknown error' });

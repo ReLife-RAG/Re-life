@@ -78,8 +78,8 @@ export default function CounselorCard({ counselor, onBook }: CounselorCardProps)
       </div>
 
       {/* Bottom footer — availability status, price, and the "View & Book" CTA button */}
-      <div className="px-5 py-3 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="px-4 py-3 bg-gray-50 border-t border-gray-100 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <div className="flex flex-col gap-2 md:gap-0 md:flex-row md:items-center md:gap-4">
           {/* Green dot = available today, amber dot = coming up later */}
           <div className="flex items-center gap-1.5">
             <span className={`w-2 h-2 rounded-full ${isAvailableToday ? "bg-[#4caf7d]" : "bg-amber-400"}`} />
@@ -96,7 +96,7 @@ export default function CounselorCard({ counselor, onBook }: CounselorCardProps)
         {/* Clicking this passes the counselor up to the parent to open the BookingModal */}
         <button
           onClick={() => onBook(counselor)}
-          className="px-4 py-1.5 rounded-full border border-[#4caf7d] text-[#2d7a55] text-xs font-semibold hover:bg-[#4caf7d] hover:text-white transition-all duration-200"
+          className="w-full md:w-auto px-4 py-1.5 rounded-full border border-[#4caf7d] text-[#2d7a55] text-xs font-semibold hover:bg-[#4caf7d] hover:text-white transition-all duration-200"
         >
           View & Book
         </button>

@@ -52,7 +52,7 @@ const ProgressSchema: Schema = new Schema({
   // Define user reference (foreign key)
   userId: { 
     type: Schema.Types.ObjectId, 
-    ref: 'User', 
+    ref: 'users', 
     required: true,
     unique: true
   },

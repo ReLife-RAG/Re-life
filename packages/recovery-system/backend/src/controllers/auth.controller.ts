@@ -24,7 +24,7 @@ export const getProfile = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    res.json({ user: fullUser });
+    return res.json({ user: fullUser });
   } catch (error) {
     return res.status(500).json({ error: 'Failed to get profile' });
   }
@@ -74,7 +74,7 @@ export const updateProfile = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    res.json({ user: updatedUser, message: 'Profile updated successfully' });
+    return res.json({ user: updatedUser, message: 'Profile updated successfully' });
   } catch (error) {
     return res.status(500).json({ error: 'Failed to update profile' });
   }
@@ -100,8 +100,67 @@ export const getProfileDetails = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'User profile not found' });
     }
 
-    res.json({ profile: userProfile });
+    return res.json({ profile: userProfile });
   } catch (error) {
     return res.status(500).json({ error: 'Failed to get profile details' });
+  }
+};
+
+/**
+ * Custom sign-up endpoint for testing
+ * @route POST /api/auth/register
+ * Creates a new user with email/password
+ */
+export const signUp = async (req: Request, res: Response) => {
+  try {
+    const { name, email, password, role } = req.body;
+
+    // Validate inputs
+    if (!name || !email || !password) {
+      return res.status(400).json({ error: 'Name, email, and password are required' });
+    }
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ error: 'Email already registered' });
+    }
+
+    // Create new user
+    const newUser = new User({
+      name,
+      email,
+      role: role || 'user',
+      emailVerified: false,
+      accountStatus: 'active'
+    });
+
+    // Note: In production, use proper password hashing (bcrypt, argon2, etc.)
+    // For now, storing plaintext (for testing only)
+    (newUser as any).password = password;
+
+    await newUser.save();
+
+    // Generate a simple JWT token for testing
+    const token = Buffer.from(JSON.stringify({
+      id: newUser._id,
+      email: newUser.email,
+      name: newUser.name,
+      role: newUser.role
+    })).toString('base64');
+
+    return res.status(201).json({
+      token,
+      user: {
+        _id: newUser._id,
+        name: newUser.name,
+        email: newUser.email,
+        role: newUser.role
+      },
+      message: 'User registered successfully'
+    });
+  } catch (error: any) {
+    console.error('Sign up error:', error);
+    return res.status(500).json({ error: 'Failed to register user' });
   }
 };

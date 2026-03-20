@@ -17,7 +17,7 @@ export interface IReminder extends Document {
 const ReminderSchema: Schema = new Schema({
   userId: {
     type: Schema.Types.ObjectId,
-    ref: 'User',
+    ref: 'users',
     required: true,
     index: true
   },

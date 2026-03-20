@@ -12,7 +12,7 @@ export interface IJournal extends Document {
 }
 
 const JournalSchema: Schema = new Schema({
-  user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  user: { type: Schema.Types.ObjectId, ref: 'users', required: true },
   content: { type: String, required: true },
   mood: { type: String, required: true },
   triggers: [{ type: String }],

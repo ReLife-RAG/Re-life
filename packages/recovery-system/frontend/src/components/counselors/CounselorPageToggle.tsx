@@ -17,10 +17,10 @@ export default function CounselorPageToggle({
   onTabChange,
 }: CounselorPageToggleProps) {
   return (
-    <div className="inline-flex items-center bg-gray-100 rounded-full p-1">
+    <div className="inline-flex items-center bg-gray-100 rounded-full p-0.5 md:p-1">
       <button
         onClick={() => onTabChange("find")}
-        className={`px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
+        className={`px-3 md:px-5 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-medium transition-all duration-200 ${
           activeTab === "find"
             ? "bg-white text-gray-900 shadow-sm"
             : "text-gray-500 hover:text-gray-700"
@@ -30,7 +30,7 @@ export default function CounselorPageToggle({
       </button>
       <button
         onClick={() => onTabChange("sessions")}
-        className={`px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
+        className={`px-3 md:px-5 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-medium transition-all duration-200 ${
           activeTab === "sessions"
             ? "bg-white text-gray-900 shadow-sm"
             : "text-gray-500 hover:text-gray-700"

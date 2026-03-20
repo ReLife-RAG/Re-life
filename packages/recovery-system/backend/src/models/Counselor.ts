@@ -30,6 +30,12 @@ export interface ITimeSlot {
     end: string;
 }
 
+export interface IAvailableSlot {
+    start: Date;
+    end: Date;
+    isBooked: boolean;
+}
+
 export interface ICredentials {
     degree: string;
     license: string;
@@ -49,9 +55,12 @@ export interface ICounselor extends Document {
     specializations: Specialization[];
     bio: string;
     availability?: IAvailability;
+    availableSlots?: IAvailableSlot[];
     rating?: number;
+    ratingCount?: number;
     totalSessions: number;
     profileImage?: string;
+    hourlyRate: number;
     isVerified: boolean;
     isActive: boolean;
     createdAt: Date;
@@ -62,6 +71,15 @@ const TimeSlotSchema = new Schema<ITimeSlot>(
     {
         start: { type: String, required: true },
         end: { type: String, required: true },
+    },
+    { _id: false }
+);
+
+const AvailableSlotSchema = new Schema<IAvailableSlot>(
+    {
+        start: { type: Date, required: true, index: true },
+        end: { type: Date, required: true },
+        isBooked: { type: Boolean, default: false },
     },
     { _id: false }
 );
@@ -100,7 +118,7 @@ const CounselorSchema = new Schema<ICounselor>(
     {
         userId: {
             type: Schema.Types.ObjectId,
-            ref: 'User',
+            ref: 'users',
             required: true,
             unique: true,
         },
@@ -138,12 +156,26 @@ const CounselorSchema = new Schema<ICounselor>(
             min: 1,
             max: 5,
         },
+        ratingCount: {
+            type: Number,
+            default: 0,
+        },
         totalSessions: {
             type: Number,
             default: 0,
         },
         profileImage: {
             type: String,
+        },
+        hourlyRate: {
+            type: Number,
+            required: true,
+            min: 0,
+        },
+        availableSlots: {
+            type: [AvailableSlotSchema],
+            default: [],
+            index: true,
         },
         isVerified: {
             type: Boolean,

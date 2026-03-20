@@ -38,11 +38,11 @@ export default function BookingModal({ counselor, onClose, onConfirm }: BookingM
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="relative flex rounded-2xl overflow-hidden shadow-2xl w-[640px] min-h-[400px]">
+      <div className="relative flex flex-col md:flex-row rounded-2xl overflow-hidden shadow-2xl w-full max-w-2xl min-h-[400px]">
 
         {/* ── Left Panel: Counselor profile summary ── */}
         <div
-          className="flex flex-col items-center justify-center px-8 py-10 gap-5 w-[240px] bg-[#3d8b7a]"
+          className="flex flex-col items-center justify-center px-6 py-8 md:py-10 gap-5 w-full md:w-[240px] bg-[#3d8b7a]"
         >
           {/* X button in the top-left corner of the modal */}
           <button
@@ -81,14 +81,14 @@ export default function BookingModal({ counselor, onClose, onConfirm }: BookingM
         </div>
 
         {/* ── Right Panel: Booking form ── */}
-        <div className="flex-1 bg-white px-8 py-8 flex flex-col">
-          <h2 className="text-xl font-bold text-gray-900 mb-5">Book a Session</h2>
+        <div className="flex-1 bg-white px-6 md:px-8 py-8 flex flex-col">
+          <h2 className="text-lg md:text-xl font-bold text-gray-900 mb-5">Book a Session</h2>
 
           {/* Time slot grid — greyed out if unavailable, green if selected */}
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
             Available Slots ({dateLabel})
           </p>
-          <div className="grid grid-cols-3 gap-2 mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-6">
             {counselor.availableSlots.map((slot) => (
               <button
                 key={slot.time}

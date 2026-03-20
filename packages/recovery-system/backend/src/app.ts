@@ -7,8 +7,9 @@ import progressRoutes from "./routes/index";
 import journalRoutes from "./routes/journal.routes";
 import communityRoutes from "./routes/community.routes";
 import counselorRoutes from "./routes/counselor.routes";
+import bookingRoutes from "./routes/booking.routes";
 import { isAuth } from "./middleware/isAuth";
-import { getProfile, updateProfile, getProfileDetails } from "./controllers/auth.controller";
+import { getProfile, updateProfile, getProfileDetails, signUp } from "./controllers/auth.controller";
 import chatRoutes from "./routes/chat.routes";
 import gamesRoutes from "./routes/games.routes";
 //import analyzer from 'express-api-timer';
@@ -40,6 +41,7 @@ app.use(helmet());
 app.get("/api/auth/me", isAuth, getProfile);
 app.put("/api/auth/profile", isAuth, updateProfile);
 app.get("/api/auth/profile/details", isAuth, getProfileDetails);
+app.post("/api/auth/register", signUp);
 
 
 // Auth routes (BetterAuth catch-all)
@@ -60,6 +62,9 @@ app.use('/api/community', communityRoutes);
 
 // Counselor Routes
 app.use('/api/counselor', counselorRoutes);
+
+// Booking Routes
+app.use('/api', bookingRoutes);
 
 // Chat Routes
 app.use('/api/chat', chatRoutes);

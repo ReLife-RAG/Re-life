@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import Counselor from '../models/Counselor';
+// import User from '../models/User';
 import { ValidationCredentials, ValidateSpecialization, validationBio } from '../utils/counselorValidation';
 
 // POST /api/counselors
@@ -106,5 +107,75 @@ export const getCounselorProfile = async (req: Request, res: Response) => {
 
     } catch (error) {
         return res.status(500).json({ error: 'Failed to get counselor profile' });
+    }
+};
+
+/**
+ * GET /api/counselors
+ * Get all counselors with optional filters
+ */
+export const getAllCounselors = async (req: Request, res: Response) => {
+    try {
+        const { specialty, specializations, isVerified } = req.query;
+
+        const filters: any = { isActive: true };
+
+        // Support both 'specialty' and 'specializations' query params
+        const specParam = (specialty || specializations) as string;
+        if (specParam) {
+            filters.specializations = { $in: [specParam.toLowerCase()] };
+        }
+
+        if (isVerified !== undefined) {
+            filters.isVerified = isVerified === 'true';
+        }
+
+        const counselors = await Counselor.find(filters)
+            .select('-credentials.license -availability')
+            .populate('userId', 'name email')
+            .sort({ rating: -1 });
+
+        return res.status(200).json({
+            message: 'Counselors retrieved successfully',
+            count: counselors.length,
+            counselors,
+        });
+    } catch (error: any) {
+        console.error('Error fetching counselors:', error.message || error);
+        return res.status(500).json({ 
+            error: 'Failed to fetch counselors',
+            details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+};
+
+/**
+ * GET /api/counselors/:id
+ * Get a single counselor by ID
+ */
+export const getCounselorById = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+
+        // Validate ObjectId format
+        if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+            return res.status(400).json({ error: 'Invalid counselor ID format' });
+        }
+
+        const counselor = await Counselor.findById(id)
+            .select('-credentials.license')
+            .populate('userId', 'name email');
+
+        if (!counselor) {
+            return res.status(404).json({ error: 'Counselor not found' });
+        }
+
+        return res.status(200).json({
+            message: 'Counselor retrieved successfully',
+            counselor,
+        });
+    } catch (error) {
+        console.error('Error fetching counselor:', error);
+        return res.status(500).json({ error: 'Failed to fetch counselor' });
     }
 };
