@@ -56,4 +56,5 @@ export interface UpdateProfileData {
     age?: number;
     bio?: string;
   };
+  savedResources?: string[];
 }

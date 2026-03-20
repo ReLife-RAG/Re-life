@@ -21,6 +21,7 @@ export interface IUser extends Document {
     bio?: string;
   };
   timezone?: string; // User's timezone for streak calculations (e.g., 'UTC', 'America/New_York')
+  savedResources: string[];
   
   // Timestamps (auto-generated)
   createdAt: Date;
@@ -53,7 +54,8 @@ const UserSchema: Schema = new Schema({
     age: { type: Number },
     bio: { type: String }
   },
-  timezone: { type: String, default: 'UTC' } // Default to UTC if not provided
+  timezone: { type: String, default: 'UTC' }, // Default to UTC if not provided
+  savedResources: [{ type: String }]
 }, {
   timestamps: true 
 });
