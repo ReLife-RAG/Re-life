@@ -7,6 +7,7 @@ export interface IBooking extends Document {
   counselorId: mongoose.Types.ObjectId;
   slotStart: Date;
   slotEnd: Date;
+  contactEmail?: string;
   fee: number;
   status: BookingStatus;
   notes?: string;
@@ -37,6 +38,12 @@ const BookingSchema = new Schema<IBooking>(
     slotEnd: {
       type: Date,
       required: true,
+    },
+    contactEmail: {
+      type: String,
+      lowercase: true,
+      trim: true,
+      maxlength: 200,
     },
     fee: {
       type: Number,
