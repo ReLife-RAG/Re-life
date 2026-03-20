@@ -1,795 +1,791 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
-import { getStreak, getMoodHistory, dailyCheckIn, logMood, type StreakData, type MoodEntry } from '@/lib/auth-client';
 import {
-  MessageSquare,
-  Calendar,
-  Search,
-  Bell,
-  ChevronRight,
-  Plus,
-  ArrowUpRight,
-  TrendingUp,
-  MoreHorizontal,
+  getStreak, getMoodHistory, getMoodData, dailyCheckIn, logMood,
+  type StreakData, type MoodEntry,
+} from '@/lib/auth-client';
+import {
+  Flame, Trophy, Heart, Calendar, TrendingUp, TrendingDown,
+  Minus, CheckCircle2, Circle, BarChart3, MessageSquare,
+  Users, Bot, UserCheck, ArrowRight, Plus, RefreshCw,
+  Bell, Search, Star, Zap, Activity, Clock, ChevronRight,
+  AlertCircle, X,
 } from 'lucide-react';
 
-/* ─── Mood name mapping (frontend emoji → backend value) ─── */
-const MOOD_MAP: Record<string, string> = {
-  Great: 'great',
-  Okay: 'good',
-  Anxious: 'okay',
-  Sad: 'struggling',
-  Angry: 'relapsed',
+// ─── Google Fonts ─────────────────────────────────────────────────────────────
+const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,700;1,9..144,300&family=DM+Sans:wght@300;400;500;600;700&display=swap');`;
+
+// ─── Design tokens ────────────────────────────────────────────────────────────
+const C = {
+  teal:       '#4A7C7C',
+  tealDark:   '#3a6060',
+  tealLight:  '#CFE1E1',
+  tealFaint:  '#EBF4F4',
+  green:      '#86D293',
+  greenDark:  '#5fa86e',
+  greenFaint: '#EAF7ED',
+  ink:        '#0f2420',
+  inkMid:     '#2d4a47',
+  inkMuted:   '#6b8a87',
+  surface:    '#FFFFFF',
+  offWhite:   '#F4F9F8',
+  border:     '#DDE9E8',
+  borderMid:  '#C8DCDB',
 };
 
-/* ─── Helper: relative time label ─── */
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'Just now';
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  return `${days}d ago`;
+// ─── Mood helpers ─────────────────────────────────────────────────────────────
+const MOOD_MAP: Record<string, string> = {
+  Great:'great', Okay:'good', Anxious:'okay', Sad:'struggling', Angry:'relapsed',
+};
+const MOOD_SCORE: Record<string, number> = {
+  great:9, good:7, okay:5, struggling:3, relapsed:1,
+};
+const MOOD_COLOR: Record<string, string> = {
+  great:'#22c55e', good:'#86D293', okay:'#eab308', struggling:'#f97316', relapsed:'#ef4444',
+};
+const MOOD_LABEL: Record<string, string> = {
+  great:'Great', good:'Good', okay:'Okay', struggling:'Struggling', relapsed:'Relapsed',
+};
+
+function timeAgo(d: string): string {
+  const diff = Date.now() - new Date(d).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return 'Just now';
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
 }
 
-/* ─── Mood emoji lookup ─── */
-const MOOD_EMOJI: Record<string, string> = {
-  great: '😄',
-  good: '🙂',
-  okay: '😰',
-  struggling: '😢',
-  relapsed: '😠',
-};
+// ─── Sub-components ───────────────────────────────────────────────────────────
 
-/* ─── Main Dashboard Page ─── */
+/** Animated number that counts up on mount */
+function CountUp({ target, duration = 1200 }: { target: number; duration?: number }) {
+  const [val, setVal] = useState(0);
+  useEffect(() => {
+    if (target === 0) return;
+    const start = Date.now();
+    const tick = () => {
+      const p = Math.min((Date.now() - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - p, 3);
+      setVal(Math.round(target * eased));
+      if (p < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }, [target, duration]);
+  return <>{val}</>;
+}
+
+/** Thin horizontal mood bar chart for weekly view */
+function MoodBarChart({ entries }: { entries: MoodEntry[] }) {
+  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  // Build last-7-days buckets
+  const buckets: { day: string; score: number | null }[] = days.map((day, i) => {
+    const d = new Date();
+    const dayOfWeek = d.getDay(); // 0=Sun
+    const offset = (i + 1) - (dayOfWeek === 0 ? 7 : dayOfWeek); // Mon=0 offset
+    const target = new Date(d);
+    target.setDate(d.getDate() + offset);
+    const key = target.toISOString().split('T')[0];
+    const match = entries.find(e => e.date.startsWith(key));
+    return { day, score: match ? (MOOD_SCORE[match.mood] ?? null) : null };
+  });
+
+  const maxScore = 10;
+  return (
+    <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', height: 80 }}>
+      {buckets.map(({ day, score }) => {
+        const pct = score ? (score / maxScore) * 100 : 0;
+        const col = score
+          ? score >= 7 ? C.green : score >= 4 ? '#eab308' : '#f97316'
+          : C.border;
+        return (
+          <div key={day} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+            <div style={{ width: '100%', height: 60, background: C.offWhite, borderRadius: 8, overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+              <div style={{ width: '100%', height: `${pct}%`, background: col, borderRadius: 8, transition: 'height 1s cubic-bezier(.4,0,.2,1)', minHeight: score ? 4 : 0 }} />
+            </div>
+            <span style={{ fontSize: 10, color: C.inkMuted, fontWeight: 500 }}>{day}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Mood score pill selector */
+function MoodPicker({
+  selected, onSelect,
+}: { selected: string | null; onSelect: (m: string) => void }) {
+  const opts = [
+    { label: 'Great',    Icon: TrendingUp,   color: '#22c55e' },
+    { label: 'Okay',     Icon: Minus,         color: C.green  },
+    { label: 'Anxious',  Icon: AlertCircle,   color: '#eab308' },
+    { label: 'Sad',      Icon: TrendingDown,  color: '#f97316' },
+    { label: 'Angry',    Icon: Activity,      color: '#ef4444' },
+  ];
+  return (
+    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+      {opts.map(({ label, Icon, color }) => {
+        const active = selected === label;
+        return (
+          <button key={label} onClick={() => onSelect(label)}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 999, border: `1.5px solid ${active ? color : C.border}`, background: active ? `${color}15` : C.surface, color: active ? color : C.inkMuted, fontSize: 13, fontWeight: active ? 600 : 400, cursor: 'pointer', transition: 'all .15s', fontFamily: "'DM Sans', sans-serif" }}>
+            <Icon size={14} strokeWidth={active ? 2.5 : 2} />
+            {label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Inline toast notification */
+function Toast({ msg, type, onClose }: { msg: string; type: 'success' | 'error' | 'info'; onClose: () => void }) {
+  useEffect(() => { const t = setTimeout(onClose, 3500); return () => clearTimeout(t); }, [onClose]);
+  const bg = type === 'error' ? '#fef2f2' : type === 'info' ? C.tealFaint : C.greenFaint;
+  const border = type === 'error' ? '#fca5a5' : type === 'info' ? C.tealLight : '#b0dfc4';
+  const color = type === 'error' ? '#dc2626' : type === 'info' ? C.tealDark : '#166534';
+  return (
+    <div style={{ position: 'fixed', bottom: 24, right: 24, background: bg, border: `1px solid ${border}`, borderRadius: 14, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10, boxShadow: '0 8px 24px rgba(0,0,0,.1)', zIndex: 9999, maxWidth: 340, fontFamily: "'DM Sans', sans-serif", animation: 'slideIn .25s ease' }}>
+      <CheckCircle2 size={16} strokeWidth={2} color={color} />
+      <span style={{ flex: 1, fontSize: 13, fontWeight: 500, color }}>{msg}</span>
+      <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color, display: 'flex' }}><X size={14} /></button>
+    </div>
+  );
+}
+
+// ─── Main Dashboard ───────────────────────────────────────────────────────────
 export default function DashboardPage() {
   const { user } = useAuth();
-  const [selectedMood, setSelectedMood] = useState<string | null>(null);
+
+  // ── State ──
+  const [streak,         setStreak]         = useState<StreakData | null>(null);
+  const [moodLog,        setMoodLog]        = useState<MoodEntry[]>([]);
+  const [loading,        setLoading]        = useState(true);
+  const [selectedMood,   setSelectedMood]   = useState<string | null>(null);
   const [checkInLoading, setCheckInLoading] = useState(false);
-  const [checkInMsg, setCheckInMsg] = useState<string | null>(null);
-  const [dataLoading, setDataLoading] = useState(true);
+  const [toast,          setToast]          = useState<{ msg: string; type: 'success' | 'error' | 'info' } | null>(null);
 
-  // Mood popup state
-  const [showMoodPopup, setShowMoodPopup] = useState(false);
-  const [popupMoodScore, setPopupMoodScore] = useState(5);
-  const [popupNotes, setPopupNotes] = useState('');
-  const [popupLoading, setPopupLoading] = useState(false);
-  const [popupMsg, setPopupMsg] = useState<string | null>(null);
+  // Mood logger popup
+  const [showMoodPop,    setShowMoodPop]    = useState(false);
+  const [popScore,       setPopScore]       = useState(6);
+  const [popNotes,       setPopNotes]       = useState('');
+  const [popLoading,     setPopLoading]     = useState(false);
+  const popTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Real data from backend
-  const [streakData, setStreakData] = useState<StreakData>({
-    currentStreak: 0,
-    longestStreak: 0,
-    lastCheckIn: null,
-    checkedInToday: false,
-    milestones: [],
-  });
-  const [moodLog, setMoodLog] = useState<MoodEntry[]>([]);
+  const firstName = user?.name?.split(' ')[0] || 'there';
 
-  const firstName = user?.name?.split(' ')[0] || 'User';
-  const streakDays = streakData.currentStreak;
-  const streakGoal = 90;
-
-  // Build "Today's Focus" from real state
-  const todayMoodLogged = moodLog.length > 0 && new Date(moodLog[0].date).toDateString() === new Date().toDateString();
-  const todaysFocus = [
-    { id: '1', label: 'Daily Check-in', done: streakData.checkedInToday },
-    { id: '2', label: 'Log Mood', done: todayMoodLogged },
-    { id: '3', label: 'Read a Resource', done: false },
-  ];
-
-  const completedCount = todaysFocus.filter((t) => t.done).length;
-  const totalTasks = todaysFocus.length;
-  const completionPct = totalTasks > 0 ? Math.round((completedCount / totalTasks) * 100) : 0;
-
-  // Build "Recent Activity" from mood log
-  const recentActivity = moodLog.slice(0, 5).map((entry, i) => ({
-    id: String(i),
-    icon: MOOD_EMOJI[entry.mood] || '📝',
-    iconBg: entry.mood === 'great' || entry.mood === 'good' ? '#8CD092' : '#40738E',
-    title: `Logged mood: ${entry.mood}`,
-    time: timeAgo(entry.date),
-  }));
-
-  // ── Fetch data from backend ──
+  // ── Fetch ──
   const fetchData = useCallback(async () => {
     try {
-      const [streak, mood] = await Promise.all([
-        getStreak(),
-        getMoodHistory(30),
-      ]);
-      setStreakData(streak);
-      setMoodLog(mood.moodLog);
+      const [s, m] = await Promise.all([getStreak(), getMoodHistory(30)]);
+      setStreak(s);
+      setMoodLog(m.moodLog || []);
     } catch (err) {
-      console.error('Dashboard data fetch error:', err);
+      console.error('Dashboard fetch error:', err);
     } finally {
-      setDataLoading(false);
+      setLoading(false);
     }
   }, []);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  useEffect(() => { fetchData(); }, [fetchData]);
 
-  // Show mood popup 1.5s after dashboard loads (only if not logged today)
+  // Show mood popup 2s after load if not logged today
   useEffect(() => {
-    if (dataLoading) return;
-    const todayLogged = moodLog.length > 0 && new Date(moodLog[0].date).toDateString() === new Date().toDateString();
+    if (loading) return;
+    const todayLogged = moodLog.some(e => new Date(e.date).toDateString() === new Date().toDateString());
     if (!todayLogged) {
-      const timer = setTimeout(() => setShowMoodPopup(true), 1500);
-      return () => clearTimeout(timer);
+      popTimerRef.current = setTimeout(() => setShowMoodPop(true), 2000);
     }
-  }, [dataLoading, moodLog]);
+    return () => { if (popTimerRef.current) clearTimeout(popTimerRef.current); };
+  }, [loading, moodLog]);
 
-  // Handle mood popup submit
-  const handlePopupMoodLog = async () => {
-    setPopupLoading(true);
-    setPopupMsg(null);
-    try {
-      // Do daily check-in FIRST (sets streak=1 for new users)
-      const moodLabels: Record<number, string> = { 1: 'relapsed', 2: 'relapsed', 3: 'struggling', 4: 'struggling', 5: 'okay', 6: 'okay', 7: 'good', 8: 'good', 9: 'great', 10: 'great' };
-      try { await dailyCheckIn({ mood: moodLabels[popupMoodScore] || 'okay', energy: popupMoodScore, notes: popupNotes || undefined }); } catch {}
-      // Then log the mood entry
-      const result = await logMood({ score: popupMoodScore, notes: popupNotes || undefined });
-      setPopupMsg('Mood logged & checked in! \uD83C\uDF1F');
-      await fetchData();
-      setTimeout(() => {
-        setShowMoodPopup(false);
-        setPopupMsg(null);
-        setPopupNotes('');
-        setPopupMoodScore(5);
-      }, 1200);
-    } catch (err: any) {
-      setPopupMsg(err.message);
-    } finally {
-      setPopupLoading(false);
-    }
-  };
+  // ── Derived ──
+  const streakDays    = streak?.currentStreak ?? 0;
+  const longestStreak = streak?.longestStreak ?? 0;
+  const checkedIn     = streak?.checkedInToday ?? false;
+  const totalCheckIns = moodLog.length;
+  const avgMoodScore  = moodLog.length > 0
+    ? Math.round(moodLog.slice(0, 30).reduce((s, e) => s + (MOOD_SCORE[e.mood] ?? 5), 0) / Math.min(moodLog.length, 30) * 10) / 10
+    : 0;
 
-  // ── Handle mood check-in ──
-  const handleCheckIn = async () => {
-    if (!selectedMood) return;
+  const todayMoodLogged = moodLog.some(e => new Date(e.date).toDateString() === new Date().toDateString());
+  const todaysFocus = [
+    { id: 'checkin', label: 'Daily Check-in',    done: checkedIn },
+    { id: 'mood',    label: 'Log Your Mood',     done: todayMoodLogged },
+    { id: 'journal', label: 'Write in Journal',  done: false },
+    { id: 'game',    label: 'Play a Game',       done: false },
+  ];
+  const focusDone  = todaysFocus.filter(t => t.done).length;
+  const focusTotal = todaysFocus.length;
+
+  // Recent activity from mood log
+  const recentActivity = moodLog.slice(0, 6).map(e => ({
+    icon: Heart,
+    label: `Logged mood: ${MOOD_LABEL[e.mood] ?? e.mood}`,
+    time: timeAgo(e.date),
+    color: MOOD_COLOR[e.mood] ?? C.green,
+  }));
+
+  // Mood trend
+  const recentScores = moodLog.slice(0, 7).map(e => MOOD_SCORE[e.mood] ?? 5);
+  const moodTrend = recentScores.length >= 2
+    ? recentScores[0] > recentScores[recentScores.length - 1] ? 'improving'
+    : recentScores[0] < recentScores[recentScores.length - 1] ? 'declining' : 'stable'
+    : 'stable';
+
+  const TrendIcon = moodTrend === 'improving' ? TrendingUp : moodTrend === 'declining' ? TrendingDown : Minus;
+  const trendColor = moodTrend === 'improving' ? '#22c55e' : moodTrend === 'declining' ? '#ef4444' : '#eab308';
+
+  // Recovery points
+  const points = streakDays * 10 + totalCheckIns * 5;
+  const nextReward = Math.ceil((points + 1) / 100) * 100;
+  const pointsPct  = Math.round((points % 100));
+
+  // ── Handlers ──
+  const showToast = useCallback((msg: string, type: 'success' | 'error' | 'info' = 'success') => {
+    setToast({ msg, type });
+  }, []);
+
+  const handleQuickCheckIn = async () => {
+    if (checkedIn || checkInLoading || !selectedMood) return;
     setCheckInLoading(true);
-    setCheckInMsg(null);
     try {
-      const backendMood = MOOD_MAP[selectedMood] || 'okay';
-      const result = await dailyCheckIn({ mood: backendMood });
-      setCheckInMsg(result.message);
+      const backendMood = MOOD_MAP[selectedMood] ?? 'okay';
+      await dailyCheckIn({ mood: backendMood });
+      showToast('Check-in complete! Streak updated.', 'success');
       setSelectedMood(null);
       await fetchData();
     } catch (err: any) {
-      setCheckInMsg(err.message || 'Check-in failed');
+      const msg = err?.message ?? '';
+      if (msg.toLowerCase().includes('already')) {
+        showToast('Already checked in today!', 'info');
+      } else {
+        showToast(err?.message ?? 'Check-in failed', 'error');
+      }
     } finally {
       setCheckInLoading(false);
     }
   };
 
-  const moods = [
-    { emoji: '😄', label: 'Great' },
-    { emoji: '🙂', label: 'Okay' },
-    { emoji: '😰', label: 'Anxious' },
-    { emoji: '😢', label: 'Sad' },
-    { emoji: '😠', label: 'Angry' },
-  ];
+  const handlePopupSubmit = async () => {
+    setPopLoading(true);
+    try {
+      const moodLabels: Record<number, string> = { 1:'relapsed',2:'relapsed',3:'struggling',4:'struggling',5:'okay',6:'okay',7:'good',8:'good',9:'great',10:'great' };
+      const mood = moodLabels[popScore] ?? 'okay';
+      // Try daily check-in first (will fail silently if already done)
+      await dailyCheckIn({ mood, energy: popScore, notes: popNotes || undefined }).catch(() => {});
+      // Always log mood entry
+      await logMood({ score: popScore, notes: popNotes || undefined });
+      showToast('Mood logged successfully!', 'success');
+      setShowMoodPop(false);
+      setPopNotes('');
+      setPopScore(6);
+      await fetchData();
+    } catch (err: any) {
+      showToast(err?.message ?? 'Failed to log mood', 'error');
+    } finally {
+      setPopLoading(false);
+    }
+  };
 
-  // Mood bar heights from real mood log (last 7 days)
-  const moodBarHeights = (() => {
-    const last7 = moodLog.slice(0, 7);
-    const moodToHeight: Record<string, number> = { great: 90, good: 70, okay: 55, struggling: 40, relapsed: 25 };
-    if (last7.length === 0) return [40, 60, 45, 70, 55, 80, 65]; // fallback
-    const heights = last7.map((e) => moodToHeight[e.mood] || 50);
-    while (heights.length < 7) heights.push(30);
-    return heights;
-  })();
+  // ── Greeting ──
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 
-  // Support network from recent activity
-  const supportNetwork = [
-    { name: 'AI Assistant', role: 'Bot', status: 'Online', time: 'Now', color: 'bg-[#EAF7ED] text-[#86D293]' },
-    { name: 'Counselor', role: 'Support', status: 'Available', time: 'Today', color: 'bg-[#EAF7ED] text-[#86D293]' },
-    { name: 'Community', role: 'Group', status: 'Active', time: 'Today', color: 'bg-orange-100 text-orange-600' },
-  ];
+  // ── Styles ──
+  const card: React.CSSProperties = {
+    background: C.surface,
+    border: `1px solid ${C.border}`,
+    borderRadius: 20,
+    boxShadow: '0 2px 12px rgba(74,124,124,.06)',
+  };
 
-  const SCORE_EMOJI = ['', '😞', '😞', '😢', '😢', '😐', '😐', '🙂', '🙂', '😄', '😄'];
+  const sectionLabel: React.CSSProperties = {
+    fontSize: 10,
+    fontWeight: 700,
+    letterSpacing: '.1em',
+    textTransform: 'uppercase',
+    color: C.inkMuted,
+    marginBottom: 12,
+  };
 
-  if (dataLoading) {
-    return (
-      <main className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-6 flex items-center justify-center min-h-[60vh]">
-        <div className="animate-spin h-8 w-8 border-4 border-[#86D293] border-t-transparent rounded-full" />
-      </main>
-    );
-  }
+  if (loading) return (
+    <>
+      <style>{FONTS}</style>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 40, height: 40, borderRadius: '50%', border: `3px solid ${C.green}`, borderTopColor: 'transparent', animation: 'spin 1s linear infinite' }} />
+          <p style={{ fontSize: 14, color: C.inkMuted, fontFamily: "'DM Sans', sans-serif" }}>Loading your dashboard…</p>
+        </div>
+      </div>
+      <style>{`@keyframes spin{to{transform:rotate(360deg);}}`}</style>
+    </>
+  );
 
   return (
     <>
-      {/* ═══ MOOD POPUP MODAL ═══ */}
-      {showMoodPopup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-white rounded-3xl shadow-2xl w-[90%] max-w-md p-8 relative animate-scaleIn">
-            {/* Close button */}
-            <button
-              onClick={() => setShowMoodPopup(false)}
-              className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition"
-            >
-              ✕
-            </button>
+      <style>{FONTS}</style>
+      <style>{`
+        @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:none; } }
+        @keyframes slideIn { from { opacity:0; transform:translateX(16px); } to { opacity:1; transform:none; } }
+        @keyframes spin { to { transform:rotate(360deg); } }
+        @keyframes scaleIn { from { opacity:0; transform:scale(.95); } to { opacity:1; transform:scale(1); } }
+        .dash-fi { animation: fadeUp .4s both; }
+        .dash-fi-1 { animation-delay:.06s; }
+        .dash-fi-2 { animation-delay:.12s; }
+        .dash-fi-3 { animation-delay:.18s; }
+        .dash-fi-4 { animation-delay:.24s; }
+        .dash-fi-5 { animation-delay:.30s; }
+        .hover-lift { transition: transform .15s, box-shadow .15s; }
+        .hover-lift:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(74,124,124,.12) !important; }
+      `}</style>
 
+      {/* Mood popup */}
+      {showMoodPop && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,36,32,.45)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)', padding: '0 16px' }}>
+          <div style={{ background: C.surface, borderRadius: 24, padding: '32px 28px', width: '100%', maxWidth: 420, boxShadow: '0 24px 64px rgba(15,36,32,.2)', animation: 'scaleIn .3s ease', fontFamily: "'DM Sans', sans-serif" }}>
             {/* Header */}
-            <div className="text-center mb-6">
-              <div className="w-16 h-16 bg-[#F3F7F3] rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-4xl">{SCORE_EMOJI[popupMoodScore]}</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
+              <div>
+                <p style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 22, fontWeight: 400, color: C.ink, lineHeight: 1.2, marginBottom: 4 }}>How are you feeling today?</p>
+                <p style={{ fontSize: 13, color: C.inkMuted }}>Take a moment to check in with yourself</p>
               </div>
-              <h2 className="text-2xl font-bold text-slate-900">How are you feeling today?</h2>
-              <p className="text-sm text-slate-400 mt-1">Take a moment to check in with yourself</p>
+              <button onClick={() => setShowMoodPop(false)} style={{ background: C.offWhite, border: 'none', borderRadius: 10, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+                <X size={16} strokeWidth={2} color={C.inkMuted} />
+              </button>
             </div>
 
-            {/* Score slider */}
-            <div className="mb-5">
-              <input
-                type="range"
-                min={1}
-                max={10}
-                value={popupMoodScore}
-                onChange={(e) => setPopupMoodScore(Number(e.target.value))}
-                aria-label="Mood score slider from 1 to 10"
-                className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-[#86D293]"
-              />
-              <div className="flex justify-between mt-2 text-xs text-slate-400">
-                <span>😞 Low</span>
-                <span className="font-bold text-lg text-slate-700">{popupMoodScore}/10</span>
-                <span>😄 Great</span>
+            {/* Score display */}
+            <div style={{ textAlign: 'center', marginBottom: 20 }}>
+              <div style={{ fontFamily: "'Fraunces', serif", fontSize: 72, fontWeight: 300, color: C.teal, lineHeight: 1, marginBottom: 4 }}>{popScore}</div>
+              <div style={{ fontSize: 12, color: C.inkMuted, letterSpacing: '.08em', textTransform: 'uppercase' }}>out of 10</div>
+            </div>
+
+            {/* Slider */}
+            <div style={{ marginBottom: 20 }}>
+              <input type="range" min={1} max={10} value={popScore} onChange={e => setPopScore(Number(e.target.value))}
+                style={{ width: '100%', accentColor: C.teal, height: 6 }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: C.inkMuted, marginTop: 4 }}>
+                <span>Struggling</span><span>Thriving</span>
               </div>
             </div>
 
-            {/* Quick mood buttons */}
-            <div className="flex justify-center gap-2 mb-5">
-              {[{s:2,e:'😞',l:'Bad'},{s:4,e:'😢',l:'Low'},{s:6,e:'😐',l:'Okay'},{s:8,e:'🙂',l:'Good'},{s:10,e:'😄',l:'Great'}].map(m => (
-                <button
-                  key={m.s}
-                  onClick={() => setPopupMoodScore(m.s)}
-                  className={`flex flex-col items-center gap-1 px-3 py-2 rounded-2xl text-xs font-bold transition-all ${
-                    popupMoodScore === m.s
-                      ? 'bg-[#86D293] text-white shadow-md scale-110'
-                      : 'bg-[#F0F4F4] text-[#4A7C7C] hover:bg-[#E2EBEB]'
-                  }`}
-                >
-                  <span className="text-lg">{m.e}</span>
-                  <span>{m.l}</span>
+            {/* Quick picks */}
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 20, flexWrap: 'wrap' }}>
+              {[{s:2,l:'Low'},{s:4,l:'Rough'},{s:6,l:'Okay'},{s:8,l:'Good'},{s:10,l:'Great'}].map(m => (
+                <button key={m.s} onClick={() => setPopScore(m.s)}
+                  style={{ padding: '6px 14px', borderRadius: 999, border: `1.5px solid ${popScore === m.s ? C.teal : C.border}`, background: popScore === m.s ? C.tealFaint : C.surface, color: popScore === m.s ? C.teal : C.inkMuted, fontSize: 12, fontWeight: popScore === m.s ? 600 : 400, cursor: 'pointer', transition: 'all .15s', fontFamily: "'DM Sans', sans-serif" }}>
+                  {m.l}
                 </button>
               ))}
             </div>
 
             {/* Notes */}
-            <textarea
-              value={popupNotes}
-              onChange={(e) => setPopupNotes(e.target.value)}
-              placeholder="Any thoughts? (optional)"
-              maxLength={500}
-              rows={2}
-              className="w-full px-4 py-3 border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-[#86D293]/30 resize-none mb-4"
-            />
+            <textarea value={popNotes} onChange={e => setPopNotes(e.target.value)}
+              placeholder="Any notes? (optional)" rows={2} maxLength={500}
+              style={{ width: '100%', padding: '12px 14px', borderRadius: 12, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "'DM Sans', sans-serif", resize: 'none', outline: 'none', color: C.ink, background: C.offWhite, boxSizing: 'border-box', marginBottom: 16 }} />
 
             {/* Submit */}
-            <button
-              onClick={handlePopupMoodLog}
-              disabled={popupLoading}
-              className="w-full py-3 bg-[#86D293] hover:bg-[#75c082] text-white rounded-2xl font-bold text-sm transition disabled:opacity-50"
-            >
-              {popupLoading ? 'Logging...' : 'Log My Mood ✨'}
+            <button onClick={handlePopupSubmit} disabled={popLoading}
+              style={{ width: '100%', padding: '13px', borderRadius: 14, border: 'none', background: `linear-gradient(135deg, ${C.teal}, ${C.green})`, color: '#fff', fontSize: 14, fontWeight: 600, cursor: popLoading ? 'not-allowed' : 'pointer', opacity: popLoading ? .65 : 1, fontFamily: "'DM Sans', sans-serif", transition: 'opacity .15s' }}>
+              {popLoading ? 'Saving…' : 'Log Mood & Check In'}
             </button>
-
-            {popupMsg && (
-              <p className={`mt-3 text-center text-sm font-medium ${
-                popupMsg.includes('successfully') ? 'text-green-600' : 'text-red-500'
-              }`}>
-                {popupMsg}
-              </p>
-            )}
-
-            {/* Skip */}
-            <button
-              onClick={() => setShowMoodPopup(false)}
-              className="w-full mt-2 py-2 text-slate-400 text-xs font-medium hover:text-slate-600 transition"
-            >
+            <button onClick={() => setShowMoodPop(false)} style={{ width: '100%', marginTop: 8, padding: '10px', borderRadius: 12, border: 'none', background: 'none', color: C.inkMuted, fontSize: 13, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
               Skip for now
             </button>
           </div>
         </div>
       )}
 
-      {/* Popup animations */}
-      <style jsx>{`
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        @keyframes scaleIn {
-          from { opacity: 0; transform: scale(0.9) translateY(20px); }
-          to { opacity: 1; transform: scale(1) translateY(0); }
-        }
-        .animate-fadeIn { animation: fadeIn 0.3s ease-out; }
-        .animate-scaleIn { animation: scaleIn 0.4s ease-out; }
-      `}</style>
+      {/* Toast */}
+      {toast && <Toast msg={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
 
-      {/* ═══ LAYOUT: MAIN CONTENT + SIDEBAR ═══ */}
-      <div className="flex flex-col md:flex-row gap-8">
-        {/* ═══ MAIN CONTENT AREA ═══ */}
-        <div className="flex-1 flex flex-col gap-8">
-          {/* ── Actions Header ── */}
-          <div className="flex items-center justify-end gap-3">
-            <Link
-              href="/progress"
-              className="flex items-center gap-2 px-4 py-2 bg-slate-50 border border-slate-100 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-100 transition-colors"
-            >
-              <Plus size={18} />
-              <span>Add goal</span>
-            </Link>
-            <button
-              onClick={() => {
-                if (!selectedMood) {
-                  setSelectedMood('Great');
-                }
-                handleCheckIn();
-              }}
-              disabled={checkInLoading}
-              className="flex items-center gap-2 px-4 py-2 bg-[#86D293] text-white rounded-xl text-sm font-medium hover:bg-[#75c082] transition-colors disabled:opacity-50"
-            >
-              <Calendar size={18} />
-              <span>{checkInLoading ? 'Logging...' : 'Daily Check-in'}</span>
-            </button>
-          </div>
+      {/* ═══ PAGE ROOT ═══ */}
+      <div style={{ fontFamily: "'DM Sans', system-ui, sans-serif", color: C.ink }}>
 
-          {/* ── Welcome Section ── */}
-          <section>
-            <p className="text-slate-400 text-sm font-medium mb-1">Portal {'>'} Dashboard</p>
-            <h1 className="text-3xl font-bold text-slate-900">
-              {streakDays === 0 ? `Welcome, ${firstName}` : `Good morning, ${firstName}`}
-            </h1>
-            {checkInMsg && (
-              <p className={`mt-2 text-sm font-medium ${
-                checkInMsg.includes('already') || checkInMsg.includes('failed') ? 'text-red-500' : 'text-[#86D293]'
-              }`}>
-                {checkInMsg}
+        {/* ── PAGE HEADER ── */}
+        <div className="dash-fi" style={{ marginBottom: 28 }}>
+          <p style={{ fontSize: 12, color: C.inkMuted, marginBottom: 6, letterSpacing: '.03em' }}>
+            Portal &rsaquo; <strong style={{ color: C.inkMid, fontWeight: 600 }}>Dashboard</strong>
+          </p>
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+            <div>
+              <h1 style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 34, fontWeight: 400, color: C.ink, letterSpacing: '-.3px', lineHeight: 1.1, marginBottom: 4 }}>
+                {greeting}, {firstName}
+              </h1>
+              <p style={{ fontSize: 14, color: C.inkMuted, fontWeight: 400 }}>
+                {checkedIn ? "You've checked in today — keep the momentum going." : "Start your day with a check-in below."}
               </p>
-            )}
-          </section>
-
-          {/* ═══ GRID LAYOUT ═══ */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1">
-
-            {/* ─── LEFT: Profile & Mood Chart ─── */}
-            <div className="lg:col-span-3 space-y-6">
-
-              {/* Profile Card */}
-              <div className="bg-[#CFE1E1] rounded-[32px] overflow-hidden relative group h-[340px]">
-                <div className="w-full h-full bg-gradient-to-br from-[#40738E] to-[#8CD092] flex items-center justify-center">
-                  <span className="text-7xl font-bold text-white/80">
-                    {firstName.charAt(0).toUpperCase()}
-                  </span>
-                </div>
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex flex-col justify-end p-6 text-white">
-                  <span className="bg-black/40 backdrop-blur-md px-3 py-1 rounded-full text-[10px] w-fit mb-2 flex items-center gap-1">
-                    <TrendingUp size={10} /> {streakDays} Day Streak
-                  </span>
-                  <h3 className="text-xl font-bold">{user?.name || 'User'}</h3>
-                  <p className="text-sm opacity-80">Recovery Member</p>
-
-                  <div className="flex gap-2 mt-4">
-                    <Link
-                      href="/chat"
-                      className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center hover:bg-white/30 transition-all"
-                    >
-                      <MessageSquare size={18} />
-                    </Link>
-                    <Link
-                      href="/counselors"
-                      className="flex-1 bg-white/20 backdrop-blur-md rounded-full px-4 text-xs font-semibold hover:bg-white/30 transition-all flex items-center justify-center"
-                    >
-                      Contact Counselor
-                    </Link>
-                  </div>
-                </div>
-              </div>
-
-              {/* Weekly Mood Chart */}
-              <div className="bg-white border border-slate-100 rounded-[32px] p-6 shadow-sm">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h4 className="text-slate-400 text-sm font-medium">Average Mood</h4>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-2xl font-bold">
-                        {moodLog.length > 0 ? 'Stable' : '—'}
-                      </span>
-                      {moodLog.length > 0 && (
-                        <span className="text-[#86D293] text-xs font-bold">+{Math.min(streakDays, 15)}%</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                <div className="h-24 flex items-end gap-1">
-                  {moodBarHeights.map((h, i) => (
-                    <div key={i} className="flex-1 bg-slate-100 rounded-t-lg relative group overflow-hidden">
-                      <div
-                        className="absolute bottom-0 w-full bg-[#86D293] transition-all duration-500 group-hover:bg-[#6ab376]"
-                        style={{ height: `${h}%` }}
-                      />
-                    </div>
-                  ))}
-                </div>
-                <div className="flex justify-between mt-2 text-[10px] text-slate-400 font-medium">
-                  <span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span>
-                </div>
-              </div>
             </div>
-
-            {/* ─── RIGHT: Analytics & Cards ─── */}
-            <div className="lg:col-span-9 space-y-6">
-
-              {/* Top Row: Activity + Engagement */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-
-                {/* Activity Progress Card */}
-                <div className="md:col-span-2 bg-[#F3F7F3] rounded-[32px] p-8 flex flex-col justify-between min-h-[300px]">
-                  <div className="flex justify-between items-start">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-[#CFE1E1] rounded-2xl flex items-center justify-center text-[#4A7C7C]">
-                        <Calendar size={24} />
-                      </div>
-                      <div>
-                        <div className="flex items-baseline gap-2">
-                          <h2 className="text-5xl font-bold">{streakDays}</h2>
-                          <span className="bg-[#86D293] text-white text-[10px] px-2 py-0.5 rounded-full">
-                            +{Math.min(streakDays, 5)}%
-                          </span>
-                        </div>
-                        <p className="text-slate-400 text-sm font-medium uppercase tracking-wider mt-1">
-                          Day Streak / Recovery
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Activity Scatter Visual */}
-                  <div className="relative h-32 mt-8 flex items-center justify-around px-4">
-                    {[...Array(15)].map((_, i) => (
-                      <div key={i} className="flex flex-col gap-1 items-center">
-                        <div className={`w-2 h-2 rounded-full ${i % 3 === 0 ? 'bg-[#4A7C7C]' : 'bg-[#4A7C7C]/20'}`} />
-                        <div className={`w-2 h-2 rounded-full ${i % 2 === 0 ? 'bg-[#4A7C7C]' : 'bg-[#4A7C7C]/10'}`} />
-                        <div className={`w-2 h-2 rounded-full ${i % 4 === 0 ? 'bg-[#4A7C7C]' : 'bg-[#4A7C7C]/30'}`} />
-                      </div>
-                    ))}
-                  </div>
-                  <div className="flex justify-between text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-4">
-                    <span>Start</span>
-                    <div className="flex gap-2">
-                      <span className="w-2 h-2 rounded-full bg-[#4A7C7C]" />
-                      <span className="w-2 h-2 rounded-full bg-[#4A7C7C]/40" />
-                      <span className="w-2 h-2 rounded-full bg-[#4A7C7C]/10" />
-                    </div>
-                    <span>Goal: {streakGoal} Days</span>
-                  </div>
-                </div>
-
-                {/* Engagement Breakdown */}
-                <div className="bg-[#4A7C7C] rounded-[32px] p-6 text-white flex flex-col justify-between">
-                  <div className="space-y-4">
-                    <div className="bg-white/10 rounded-2xl p-4">
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="text-[10px] font-bold uppercase tracking-wider opacity-60">Check-ins</span>
-                        <span className="text-xs font-bold">
-                          {streakData.checkedInToday ? '✓ Done' : 'Pending'}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-end">
-                        <span className="text-3xl font-bold">{completionPct}%</span>
-                        <span className="text-[10px] font-medium opacity-80">Daily goal</span>
-                      </div>
-                    </div>
-                    <div className="bg-white/10 rounded-2xl p-4">
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="text-[10px] font-bold uppercase tracking-wider opacity-60">Mood Logs</span>
-                        <span className="text-xs font-bold text-[#86D293]">
-                          {moodLog.length} entries
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-end">
-                        <span className="text-3xl font-bold">
-                          {moodLog.length > 0 ? `${Math.round((moodLog.filter(m => m.mood === 'great' || m.mood === 'good').length / moodLog.length) * 100)}%` : '0%'}
-                        </span>
-                        <span className="text-[10px] font-medium opacity-80">Positive</span>
-                      </div>
-                    </div>
-                  </div>
-                  <Link
-                    href="/progress"
-                    className="w-full py-3 bg-white/20 hover:bg-white/30 rounded-2xl text-xs font-bold transition-all text-center block mt-4"
-                  >
-                    View full report
-                  </Link>
-                </div>
-              </div>
-
-              {/* Bottom Row: Goal Progress + Today's Focus */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-                {/* Goal Progress Gauge */}
-                <div className="bg-white border border-slate-100 rounded-[32px] p-8 shadow-sm">
-                  <div className="flex justify-between items-center mb-8">
-                    <h3 className="font-bold text-slate-800">Goal Progress</h3>
-                    <Link href="/progress" className="p-2 hover:bg-slate-50 rounded-xl">
-                      <ChevronRight size={20} className="text-slate-400" />
-                    </Link>
-                  </div>
-
-                  <div className="relative flex justify-center items-center py-4">
-                    <svg className="w-48 h-24" viewBox="0 0 100 50">
-                      <path
-                        d="M 10,50 A 40,40 0 0,1 90,50"
-                        fill="none"
-                        stroke="#F0F4F4"
-                        strokeWidth="8"
-                        strokeLinecap="round"
-                      />
-                      <path
-                        d="M 10,50 A 40,40 0 0,1 70,14"
-                        fill="none"
-                        stroke="#86D293"
-                        strokeWidth="8"
-                        strokeDasharray="125"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                    <div className="absolute bottom-0 text-center">
-                      <span className="text-4xl font-bold block">{streakDays}</span>
-                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Days Gained</span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3 mt-8">
-                    {[
-                      { label: 'Check-ins', count: streakData.currentStreak, color: 'bg-[#86D293]' },
-                      { label: 'Mood Logs', count: moodLog.length, color: 'bg-[#4A7C7C]' },
-                      { label: 'Longest Streak', count: streakData.longestStreak, color: 'bg-slate-200' },
-                    ].map((item) => (
-                      <div key={item.label} className="flex justify-between items-center">
-                        <div className="flex items-center gap-2">
-                          <div className={`w-3 h-3 rounded-full ${item.color}`} />
-                          <span className="text-xs font-medium text-slate-500">{item.label}</span>
-                        </div>
-                        <span className="text-xs font-bold">{item.count} items</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Today's Focus + Milestones */}
-                <div className="bg-white border border-slate-100 rounded-[32px] p-8 shadow-sm">
-                  <div className="flex justify-between items-center mb-8">
-                    <h3 className="font-bold text-slate-800">Today&apos;s Focus</h3>
-                    <Link href="/progress" className="p-2 hover:bg-slate-50 rounded-xl">
-                      <ChevronRight size={20} className="text-slate-400" />
-                    </Link>
-                  </div>
-
-                  {/* Mood Selection */}
-                  <div className="flex gap-2 mb-6 flex-wrap">
-                    {moods.map((m) => (
-                      <button
-                        key={m.label}
-                        onClick={() => setSelectedMood(m.label)}
-                        className={`flex items-center gap-1.5 px-3 py-2 rounded-2xl text-xs font-bold transition-all ${
-                          selectedMood === m.label
-                            ? 'bg-[#86D293] text-white shadow-sm'
-                            : 'bg-[#F0F4F4] text-[#4A7C7C] hover:bg-[#E2EBEB]'
-                        }`}
-                      >
-                        <span>{m.emoji}</span>
-                        <span>{m.label}</span>
-                      </button>
-                    ))}
-                  </div>
-
-                  {selectedMood && (
-                    <button
-                      onClick={handleCheckIn}
-                      disabled={checkInLoading}
-                      className="w-full mb-6 py-2.5 bg-[#86D293] hover:bg-[#75c082] rounded-2xl text-xs font-bold transition-all text-white disabled:opacity-50"
-                    >
-                      {checkInLoading ? 'Logging...' : 'Log Mood & Check In'}
-                    </button>
-                  )}
-
-                  {/* Milestones Progress */}
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">
-                      <span>Milestones</span>
-                      <span>{completionPct}% Done</span>
-                    </div>
-                    <div className="flex gap-1">
-                      {[...Array(12)].map((_, i) => (
-                        <div
-                          key={i}
-                          className={`h-6 flex-1 rounded-sm ${
-                            i < Math.round((completedCount / totalTasks) * 12)
-                              ? 'bg-[#86D293]'
-                              : 'bg-slate-100'
-                          }`}
-                        />
-                      ))}
-                    </div>
-                    <div className="flex justify-between mt-2">
-                      <div className="flex items-center gap-1 text-[10px] font-bold text-[#86D293]">
-                        <div className="w-1.5 h-1.5 rounded-full bg-[#86D293]" />
-                        Completed
-                      </div>
-                      <div className="flex items-center gap-1 text-[10px] font-bold text-slate-300">
-                        <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />
-                        Pending
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Focus tasks */}
-                  <div className="mt-6 space-y-2">
-                    {todaysFocus.map((task) => (
-                      <div key={task.id} className="flex items-center gap-3">
-                        {task.done ? (
-                          <div className="w-5 h-5 rounded-full bg-[#86D293] flex items-center justify-center flex-shrink-0">
-                            <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                            </svg>
-                          </div>
-                        ) : (
-                          <div className="w-5 h-5 rounded-full border-2 border-slate-200 flex-shrink-0" />
-                        )}
-                        <span className={`text-sm ${
-                          task.done ? 'text-slate-300 line-through' : 'text-slate-700 font-medium'
-                        }`}>
-                          {task.label}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={() => setShowMoodPop(true)}
+                style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 18px', borderRadius: 12, border: `1.5px solid ${C.border}`, background: C.surface, color: C.inkMid, fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", transition: 'all .15s' }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = C.teal; e.currentTarget.style.color = C.teal; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.inkMid; }}>
+                <BarChart3 size={15} strokeWidth={2} /> Log Mood
+              </button>
+              <Link href="/progress"
+                style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 18px', borderRadius: 12, border: 'none', background: C.teal, color: '#fff', fontSize: 13, fontWeight: 600, textDecoration: 'none', fontFamily: "'DM Sans', sans-serif" }}>
+                <Activity size={15} strokeWidth={2} /> View Progress
+              </Link>
             </div>
           </div>
         </div>
 
-        {/* ═══ RIGHT SIDEBAR ═══ */}
-        <aside className="w-full md:w-[350px] bg-[#F9FBFA] border-l border-slate-50 p-6 flex flex-col gap-8">
-
-          {/* Search & Profile */}
-          <div className="flex items-center justify-between">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-              <input
-                type="text"
-                placeholder="Search resources..."
-                className="w-full pl-10 pr-4 py-2 bg-white border border-slate-100 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#86D293]/20"
-              />
-            </div>
-            <div className="flex items-center gap-2 ml-4">
-              <button type="button" aria-label="Notifications" className="p-2 text-slate-400 hover:text-slate-600 relative">
-                <Bell size={20} />
-                <div className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
-              </button>
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#40738E] to-[#8CD092] flex items-center justify-center text-white font-bold text-sm border border-slate-200">
-                {firstName.charAt(0).toUpperCase()}
+        {/* ═══ HERO STATS STRIP ═══ */}
+        <div className="dash-fi dash-fi-1" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 24 }}>
+          {/* Streak — featured card */}
+          <div className="hover-lift" style={{ ...card, background: `linear-gradient(135deg, ${C.teal} 0%, ${C.tealDark} 100%)`, borderColor: 'transparent', padding: '22px 20px', position: 'relative', overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', top: -20, right: -20, width: 80, height: 80, borderRadius: '50%', background: 'rgba(255,255,255,.08)' }} />
+            <div style={{ position: 'absolute', bottom: -30, left: -10, width: 100, height: 100, borderRadius: '50%', background: 'rgba(255,255,255,.04)' }} />
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, position: 'relative' }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(255,255,255,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Flame size={18} strokeWidth={2} color="#fff" />
               </div>
+              {checkedIn && <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: 'rgba(255,255,255,.7)', background: 'rgba(255,255,255,.12)', borderRadius: 999, padding: '3px 10px' }}>Today Done</span>}
             </div>
+            <div style={{ fontFamily: "'Fraunces', serif", fontSize: 52, fontWeight: 300, color: '#fff', lineHeight: 1, marginBottom: 4, position: 'relative' }}>
+              <CountUp target={streakDays} />
+            </div>
+            <p style={{ fontSize: 12, color: 'rgba(255,255,255,.7)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '.08em', position: 'relative' }}>Day Streak</p>
           </div>
 
-          {/* Support Network */}
-          <div>
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="font-bold text-slate-800">Support Network</h3>
-              <MoreHorizontal size={20} className="text-slate-400" />
+          {/* Longest Streak */}
+          <div className="hover-lift" style={{ ...card, padding: '22px 20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: '#fef9e7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Trophy size={18} strokeWidth={2} color="#b45309" />
+              </div>
+              <span style={{ fontSize: 10, fontWeight: 700, color: '#b45309', background: '#fef9e7', borderRadius: 999, padding: '3px 10px', letterSpacing: '.04em' }}>Best</span>
             </div>
+            <div style={{ fontFamily: "'Fraunces', serif", fontSize: 44, fontWeight: 300, color: C.ink, lineHeight: 1, marginBottom: 4 }}>
+              <CountUp target={longestStreak} />
+            </div>
+            <p style={{ fontSize: 12, color: C.inkMuted, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '.08em' }}>Longest Streak</p>
+          </div>
 
-            <div className="space-y-5">
-              {supportNetwork.map((item, idx) => (
-                <div key={idx} className="flex items-center justify-between group cursor-pointer">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-[#CFE1E1] flex items-center justify-center text-[#4A7C7C] font-bold text-sm">
-                      {item.name.charAt(0)}
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-bold text-slate-800">{item.name}</h4>
-                      <p className="text-[10px] text-slate-400 font-medium">{item.role} • {item.time}</p>
-                    </div>
-                  </div>
-                  <div className={`px-3 py-1 rounded-full text-[10px] font-bold ${item.color}`}>
-                    {item.status}
-                  </div>
+          {/* Avg Mood */}
+          <div className="hover-lift" style={{ ...card, padding: '22px 20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: `${C.greenFaint}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Heart size={18} strokeWidth={2} color={C.green} />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <TrendIcon size={13} strokeWidth={2.5} color={trendColor} />
+                <span style={{ fontSize: 11, fontWeight: 600, color: trendColor, textTransform: 'capitalize' }}>{moodTrend}</span>
+              </div>
+            </div>
+            <div style={{ fontFamily: "'Fraunces', serif", fontSize: 44, fontWeight: 300, color: C.ink, lineHeight: 1, marginBottom: 4 }}>
+              {avgMoodScore > 0 ? avgMoodScore.toFixed(1) : '—'}
+            </div>
+            <p style={{ fontSize: 12, color: C.inkMuted, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '.08em' }}>Avg Mood (30d)</p>
+          </div>
+
+          {/* Check-ins */}
+          <div className="hover-lift" style={{ ...card, padding: '22px 20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: C.tealFaint, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Calendar size={18} strokeWidth={2} color={C.teal} />
+              </div>
+              <span style={{ fontSize: 10, fontWeight: 700, color: C.teal, background: C.tealFaint, borderRadius: 999, padding: '3px 10px', letterSpacing: '.04em' }}>Total</span>
+            </div>
+            <div style={{ fontFamily: "'Fraunces', serif", fontSize: 44, fontWeight: 300, color: C.ink, lineHeight: 1, marginBottom: 4 }}>
+              <CountUp target={totalCheckIns} />
+            </div>
+            <p style={{ fontSize: 12, color: C.inkMuted, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '.08em' }}>Check-ins</p>
+          </div>
+        </div>
+
+        {/* ═══ MAIN GRID ═══ */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 20 }}>
+
+          {/* ── LEFT COLUMN ── */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20, minWidth: 0 }}>
+
+            {/* CHECK-IN + MOOD SELECTOR */}
+            <div className="dash-fi dash-fi-2" style={{ ...card, padding: '24px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                <div>
+                  <p style={sectionLabel}>Today's Check-in</p>
+                  <p style={{ fontFamily: "'Fraunces', serif", fontSize: 20, fontWeight: 400, color: C.ink }}>
+                    {checkedIn ? 'Already checked in — great work!' : 'Select your mood to check in'}
+                  </p>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Recent Activity (sidebar) */}
-          <div>
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="font-bold text-slate-800">Recent Activity</h3>
-              <Link href="/progress" className="text-[#86D293] text-xs font-semibold hover:underline">
-                View All
-              </Link>
-            </div>
-            {recentActivity.length === 0 ? (
-              <div className="text-center py-6">
-                <div className="text-3xl mb-2">📋</div>
-                <p className="text-sm text-slate-400">No activity yet. Start your first task!</p>
+                {checkedIn && (
+                  <div style={{ width: 44, height: 44, borderRadius: '50%', background: C.greenFaint, border: `2px solid ${C.green}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <CheckCircle2 size={22} strokeWidth={2} color={C.green} />
+                  </div>
+                )}
               </div>
-            ) : (
-              <div className="space-y-3">
-                {recentActivity.map((item) => (
-                  <div key={item.id} className="flex items-center gap-3 p-2 rounded-xl hover:bg-white transition">
-                    <div
-                      className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-                      style={{ backgroundColor: item.iconBg + '20' }}
-                    >
-                      <span className="text-sm">{item.icon}</span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-slate-800 truncate">{item.title}</p>
-                      <p className="text-[10px] text-slate-400">{item.time}</p>
-                    </div>
+
+              {!checkedIn && (
+                <>
+                  <MoodPicker selected={selectedMood} onSelect={setSelectedMood} />
+                  {selectedMood && (
+                    <button onClick={handleQuickCheckIn} disabled={checkInLoading}
+                      style={{ marginTop: 14, width: '100%', padding: '12px', borderRadius: 12, border: 'none', background: `linear-gradient(135deg, ${C.teal}, ${C.green})`, color: '#fff', fontSize: 14, fontWeight: 600, cursor: checkInLoading ? 'not-allowed' : 'pointer', opacity: checkInLoading ? .7 : 1, fontFamily: "'DM Sans', sans-serif", transition: 'opacity .15s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                      {checkInLoading
+                        ? <><RefreshCw size={15} strokeWidth={2} style={{ animation: 'spin 1s linear infinite' }} /> Checking in…</>
+                        : <><CheckCircle2 size={15} strokeWidth={2} /> Check In as {selectedMood}</>}
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* MOOD CHART */}
+            <div className="dash-fi dash-fi-2" style={{ ...card, padding: '24px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                <div>
+                  <p style={sectionLabel}>Weekly Mood</p>
+                  <p style={{ fontFamily: "'Fraunces', serif", fontSize: 20, fontWeight: 400, color: C.ink }}>This week's overview</p>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 999, background: `${trendColor}12`, border: `1px solid ${trendColor}30` }}>
+                  <TrendIcon size={13} strokeWidth={2.5} color={trendColor} />
+                  <span style={{ fontSize: 12, fontWeight: 600, color: trendColor, textTransform: 'capitalize' }}>{moodTrend}</span>
+                </div>
+              </div>
+              {moodLog.length > 0 ? (
+                <MoodBarChart entries={moodLog} />
+              ) : (
+                <div style={{ height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center', background: C.offWhite, borderRadius: 12 }}>
+                  <p style={{ fontSize: 13, color: C.inkMuted }}>Log moods to see your chart</p>
+                </div>
+              )}
+              {/* Legend */}
+              <div style={{ display: 'flex', gap: 16, marginTop: 14, flexWrap: 'wrap' }}>
+                {[['#22c55e', 'Great (7-10)'], ['#eab308', 'Okay (4-6)'], ['#f97316', 'Low (1-3)']].map(([col, label]) => (
+                  <div key={label as string} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div style={{ width: 10, height: 10, borderRadius: 3, background: col as string }} />
+                    <span style={{ fontSize: 11, color: C.inkMuted }}>{label}</span>
                   </div>
                 ))}
               </div>
-            )}
+            </div>
+
+            {/* TODAY'S FOCUS */}
+            <div className="dash-fi dash-fi-3" style={{ ...card, padding: '24px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                <div>
+                  <p style={sectionLabel}>Today's Focus</p>
+                  <p style={{ fontFamily: "'Fraunces', serif", fontSize: 20, fontWeight: 400, color: C.ink }}>
+                    {focusDone} of {focusTotal} tasks done
+                  </p>
+                </div>
+                {/* Progress ring */}
+                <svg width={52} height={52} viewBox="0 0 52 52">
+                  <circle cx={26} cy={26} r={22} fill="none" stroke={C.border} strokeWidth={5} />
+                  <circle cx={26} cy={26} r={22} fill="none" stroke={C.teal} strokeWidth={5}
+                    strokeDasharray={2 * Math.PI * 22}
+                    strokeDashoffset={2 * Math.PI * 22 * (1 - focusDone / focusTotal)}
+                    strokeLinecap="round" transform="rotate(-90 26 26)"
+                    style={{ transition: 'stroke-dashoffset .8s ease' }} />
+                  <text x={26} y={31} textAnchor="middle" fontSize={14} fontWeight={700} fill={C.teal}>
+                    {Math.round(focusDone / focusTotal * 100)}%
+                  </text>
+                </svg>
+              </div>
+
+              {/* Progress bar */}
+              <div style={{ height: 6, background: C.offWhite, borderRadius: 999, overflow: 'hidden', marginBottom: 18 }}>
+                <div style={{ height: '100%', width: `${(focusDone / focusTotal) * 100}%`, background: `linear-gradient(90deg, ${C.teal}, ${C.green})`, borderRadius: 999, transition: 'width .8s ease' }} />
+              </div>
+
+              {/* Tasks */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {todaysFocus.map(task => (
+                  <div key={task.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 12, background: task.done ? C.greenFaint : C.offWhite, border: `1px solid ${task.done ? '#b0dfc4' : C.border}`, transition: 'all .2s' }}>
+                    {task.done
+                      ? <CheckCircle2 size={18} strokeWidth={2} color={C.green} />
+                      : <Circle size={18} strokeWidth={1.8} color={C.inkMuted} />}
+                    <span style={{ flex: 1, fontSize: 14, fontWeight: task.done ? 400 : 500, color: task.done ? C.inkMuted : C.ink, textDecoration: task.done ? 'line-through' : 'none' }}>
+                      {task.label}
+                    </span>
+                    {!task.done && (
+                      <Link href={task.id === 'checkin' ? '/dashboard' : task.id === 'mood' ? '/progress' : task.id === 'journal' ? '/journals' : '/games'}
+                        style={{ fontSize: 12, color: C.teal, fontWeight: 600, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 3 }}>
+                        Do it <ArrowRight size={12} strokeWidth={2.5} />
+                      </Link>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* RECENT ACTIVITY */}
+            <div className="dash-fi dash-fi-3" style={{ ...card, padding: '24px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                <div>
+                  <p style={sectionLabel}>Recent Activity</p>
+                  <p style={{ fontFamily: "'Fraunces', serif", fontSize: 20, fontWeight: 400, color: C.ink }}>Your latest actions</p>
+                </div>
+                <Link href="/progress" style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, color: C.teal, fontWeight: 600, textDecoration: 'none' }}>
+                  View all <ChevronRight size={15} strokeWidth={2.5} />
+                </Link>
+              </div>
+
+              {recentActivity.length === 0 ? (
+                <div style={{ padding: '24px', textAlign: 'center', background: C.offWhite, borderRadius: 12 }}>
+                  <Clock size={28} strokeWidth={1.5} color={C.inkMuted} style={{ marginBottom: 8 }} />
+                  <p style={{ fontSize: 13, color: C.inkMuted }}>No activity yet — start by logging your mood!</p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {recentActivity.map((item, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 12, transition: 'background .15s', cursor: 'default' }}
+                      onMouseEnter={e => (e.currentTarget.style.background = C.offWhite)}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                      <div style={{ width: 36, height: 36, borderRadius: 10, background: `${item.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <item.icon size={16} strokeWidth={2} color={item.color} />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: 13, fontWeight: 500, color: C.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.label}</p>
+                        <p style={{ fontSize: 11, color: C.inkMuted, marginTop: 1 }}>{item.time}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Recovery Stats Card */}
-          <div className="mt-auto bg-[#4A7C7C] rounded-[32px] p-6 text-white relative overflow-hidden">
-            <div className="absolute top-[-20px] right-[-20px] w-32 h-32 bg-white/5 rounded-full blur-2xl" />
+          {/* ── RIGHT SIDEBAR ── */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20, minWidth: 0 }}>
 
-            <div className="flex flex-col gap-6">
-              <div className="flex gap-2">
-                <div className="px-4 py-2 bg-white/10 rounded-xl text-xs font-bold">Base Recovery</div>
-                <div className="px-4 py-2 bg-white/10 rounded-xl text-xs font-bold">Streak Bonus</div>
-              </div>
-
-              <div className="space-y-1">
-                <div className="flex justify-between items-center opacity-60">
-                  <span className="text-[10px] font-bold uppercase tracking-widest">Progress Level</span>
-                  <span className="text-[10px] font-bold">
-                    {streakDays >= 60 ? 'GOLD TIER' : streakDays >= 30 ? 'SILVER TIER' : 'BRONZE TIER'}
+            {/* PROFILE CARD */}
+            <div className="dash-fi dash-fi-2" style={{ ...card, padding: '24px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 60, background: `linear-gradient(135deg, ${C.teal}, ${C.green})` }} />
+              <div style={{ position: 'relative', paddingTop: 20 }}>
+                <div style={{ width: 64, height: 64, borderRadius: '50%', background: `linear-gradient(135deg, ${C.teal}, ${C.green})`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px', border: '3px solid #fff', boxShadow: '0 4px 12px rgba(74,124,124,.3)' }}>
+                  <span style={{ fontFamily: "'Fraunces', serif", fontSize: 26, fontWeight: 400, color: '#fff' }}>
+                    {firstName.charAt(0).toUpperCase()}
                   </span>
                 </div>
-                <div className="flex justify-between items-end">
-                  <h2 className="text-3xl font-bold">
-                    {streakDays * 10} <span className="text-sm font-normal opacity-60">pts</span>
-                  </h2>
-                  <div className="flex flex-col items-end">
-                    <span className="text-[10px] font-bold opacity-60">NEXT REWARD AT</span>
-                    <span className="text-lg font-bold">{Math.ceil((streakDays * 10 + 100) / 100) * 100}</span>
-                  </div>
+                <p style={{ fontFamily: "'Fraunces', serif", fontSize: 18, fontWeight: 400, color: C.ink, marginBottom: 2 }}>{user?.name || 'Member'}</p>
+                <p style={{ fontSize: 12, color: C.inkMuted, marginBottom: 16 }}>Recovery Member</p>
+                {/* Tier badge */}
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 999, background: C.tealFaint, border: `1px solid ${C.tealLight}` }}>
+                  <Star size={13} strokeWidth={2} color={C.teal} />
+                  <span style={{ fontSize: 12, fontWeight: 600, color: C.teal }}>
+                    {streakDays >= 90 ? 'Diamond Member' : streakDays >= 30 ? 'Gold Member' : streakDays >= 7 ? 'Silver Member' : 'Bronze Member'}
+                  </span>
                 </div>
               </div>
+            </div>
 
-              <div className="flex items-center gap-3 pt-4 border-t border-white/10">
-                <Link
-                  href="/progress"
-                  className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-all"
-                >
-                  <ArrowUpRight size={18} />
-                </Link>
-                <Link
-                  href="/games"
-                  className="flex-1 py-3 bg-[#86D293] hover:bg-[#75c082] rounded-2xl text-xs font-bold transition-all text-white text-center"
-                >
-                  View Challenges
-                </Link>
+            {/* RECOVERY POINTS */}
+            <div className="dash-fi dash-fi-2 hover-lift" style={{ ...card, background: `linear-gradient(135deg, ${C.teal} 0%, #2d5f5f 100%)`, borderColor: 'transparent', padding: '22px', color: '#fff', position: 'relative', overflow: 'hidden' }}>
+              <div style={{ position: 'absolute', top: -30, right: -30, width: 100, height: 100, borderRadius: '50%', background: 'rgba(255,255,255,.06)' }} />
+              <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,.6)', marginBottom: 4 }}>Recovery Points</p>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, marginBottom: 12 }}>
+                <span style={{ fontFamily: "'Fraunces', serif", fontSize: 40, fontWeight: 300, color: '#fff', lineHeight: 1 }}>
+                  <CountUp target={points} />
+                </span>
+                <span style={{ fontSize: 13, color: 'rgba(255,255,255,.6)', paddingBottom: 4 }}>pts</span>
+              </div>
+              {/* Progress to next reward */}
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'rgba(255,255,255,.55)', marginBottom: 6 }}>
+                  <span>Next reward at {nextReward} pts</span>
+                  <span>{pointsPct}%</span>
+                </div>
+                <div style={{ height: 5, background: 'rgba(255,255,255,.15)', borderRadius: 999, overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${pointsPct}%`, background: C.green, borderRadius: 999, transition: 'width 1s ease' }} />
+                </div>
+              </div>
+              {/* How points are earned */}
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,.5)' }}>
+                <Zap size={11} strokeWidth={2} style={{ display: 'inline', marginRight: 4 }} />
+                +10 per streak day · +5 per check-in
+              </div>
+            </div>
+
+            {/* SUPPORT NETWORK */}
+            <div className="dash-fi dash-fi-3" style={{ ...card, padding: '22px' }}>
+              <p style={sectionLabel}>Support Network</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {[
+                  { Icon: Bot,       label: 'AI Assistant',  sub: 'Available 24/7',  status: 'Online',     statusColor: C.green,    href: '/chat'       },
+                  { Icon: UserCheck, label: 'Counselor',     sub: 'Book a session',  status: 'Available',  statusColor: C.green,    href: '/counselors' },
+                  { Icon: Users,     label: 'Community',     sub: 'Join the feed',   status: 'Active',     statusColor: '#f97316',  href: '/community'  },
+                  { Icon: MessageSquare, label: 'Journal',   sub: 'Write an entry',  status: 'Private',    statusColor: C.teal,     href: '/journals'   },
+                ].map(item => (
+                  <Link key={item.label} href={item.href}
+                    style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 12, textDecoration: 'none', transition: 'background .15s' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = C.offWhite)}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                    <div style={{ width: 40, height: 40, borderRadius: 12, background: C.tealFaint, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <item.Icon size={18} strokeWidth={1.8} color={C.teal} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: 13, fontWeight: 600, color: C.ink, marginBottom: 1 }}>{item.label}</p>
+                      <p style={{ fontSize: 11, color: C.inkMuted }}>{item.sub}</p>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <div style={{ width: 7, height: 7, borderRadius: '50%', background: item.statusColor }} />
+                      <span style={{ fontSize: 11, fontWeight: 600, color: item.statusColor }}>{item.status}</span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            {/* MILESTONES PEEK */}
+            {streak?.milestones && streak.milestones.length > 0 && (
+              <div className="dash-fi dash-fi-4" style={{ ...card, padding: '22px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                  <p style={sectionLabel}>Milestones</p>
+                  <Link href="/progress" style={{ fontSize: 12, color: C.teal, fontWeight: 600, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 3 }}>
+                    All <ChevronRight size={13} strokeWidth={2.5} />
+                  </Link>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {streak.milestones.slice(0, 4).map((m, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 10, background: m.achieved ? C.greenFaint : C.offWhite, border: `1px solid ${m.achieved ? '#b0dfc4' : C.border}` }}>
+                      <div style={{ width: 28, height: 28, borderRadius: 8, background: m.achieved ? C.green : C.border, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        {m.achieved
+                          ? <CheckCircle2 size={14} strokeWidth={2.5} color="#fff" />
+                          : <Star size={13} strokeWidth={2} color="#fff" />}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <p style={{ fontSize: 12, fontWeight: 600, color: m.achieved ? '#166534' : C.inkMid }}>{m.name}</p>
+                        <p style={{ fontSize: 10, color: C.inkMuted }}>{m.targetDays} days</p>
+                      </div>
+                      {m.achieved && <CheckCircle2 size={14} strokeWidth={2.5} color={C.green} />}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* QUICK ACTIONS */}
+            <div className="dash-fi dash-fi-5" style={{ ...card, padding: '22px' }}>
+              <p style={sectionLabel}>Quick Actions</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {[
+                  { label: 'Start AI Chat',        href: '/chat',        Icon: MessageSquare, bg: C.tealFaint,  color: C.teal    },
+                  { label: 'Find a Counselor',      href: '/counselors',  Icon: UserCheck,     bg: '#fef9e7',    color: '#b45309' },
+                  { label: 'Browse Games',          href: '/games',       Icon: Zap,           bg: C.greenFaint, color: C.greenDark },
+                  { label: 'View Community',        href: '/community',   Icon: Users,         bg: '#f3eeff',    color: '#6d28d9' },
+                ].map(item => (
+                  <Link key={item.label} href={item.href}
+                    style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', borderRadius: 12, background: item.bg, border: `1px solid ${C.border}`, textDecoration: 'none', transition: 'transform .15s, box-shadow .15s' }}
+                    onMouseEnter={e => { e.currentTarget.style.transform = 'translateX(3px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(74,124,124,.1)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}>
+                    <item.Icon size={16} strokeWidth={2} color={item.color} />
+                    <span style={{ flex: 1, fontSize: 13, fontWeight: 500, color: C.inkMid }}>{item.label}</span>
+                    <ArrowRight size={14} strokeWidth={2} color={C.inkMuted} />
+                  </Link>
+                ))}
               </div>
             </div>
           </div>
-        </aside>
+        </div>
       </div>
-      </>
-    );
-  }
+    </>
+  );
+}
