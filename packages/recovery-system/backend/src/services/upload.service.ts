@@ -13,7 +13,7 @@ cloudinary.config({
 
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
-  params: async (req, file) => {
+  params: async (_req, file) => {
     return {
       folder: 'relife_app', 
       allowed_formats: ['jpg', 'png', 'jpeg', 'webp'],

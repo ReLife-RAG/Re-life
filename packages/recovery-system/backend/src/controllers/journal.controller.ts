@@ -39,7 +39,7 @@ export const createEntry = async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('Create journal error:', error);
-    res.status(500).json({ message: 'Failed to create journal', error: error instanceof Error ? error.message : 'Unknown error' });
+    return res.status(500).json({ message: 'Failed to create journal', error: error instanceof Error ? error.message : 'Unknown error' });
   }
 };
 
@@ -90,7 +90,7 @@ export const getEntries = async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('Get journals error:', error);
-    res.status(500).json({ message: 'Failed to fetch journals', error: error instanceof Error ? error.message : 'Unknown error' });
+    return res.status(500).json({ message: 'Failed to fetch journals', error: error instanceof Error ? error.message : 'Unknown error' });
   }
 };
 export const getEntryById = async (req: Request, res: Response) => {
@@ -117,7 +117,7 @@ export const getEntryById = async (req: Request, res: Response) => {
     res.status(200).json(entry);
   } catch (error) {
     console.error('Get entry error:', error);
-    res.status(500).json({ message: 'Failed to fetch entry', error: error instanceof Error ? error.message : 'Unknown error' });
+    return res.status(500).json({ message: 'Failed to fetch entry', error: error instanceof Error ? error.message : 'Unknown error' });
   }
 };
 
@@ -159,7 +159,7 @@ export const updateEntry = async (req: Request, res: Response) => {
     res.status(200).json(updatedEntry);
   } catch (error) {
     console.error('Update entry error:', error);
-    res.status(500).json({ message: 'Failed to update entry', error: error instanceof Error ? error.message : 'Unknown error' });
+    return res.status(500).json({ message: 'Failed to update entry', error: error instanceof Error ? error.message : 'Unknown error' });
   }
 };
 
@@ -187,6 +187,6 @@ export const deleteEntry = async (req: Request, res: Response) => {
     res.status(200).json({ message: 'Entry deleted successfully' });
   } catch (error) {
     console.error('Delete entry error:', error);
-    res.status(500).json({ message: 'Failed to delete entry', error: error instanceof Error ? error.message : 'Unknown error' });
+    return res.status(500).json({ message: 'Failed to delete entry', error: error instanceof Error ? error.message : 'Unknown error' });
   }
 };

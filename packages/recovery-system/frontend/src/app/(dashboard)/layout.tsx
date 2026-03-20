@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { getStreak } from '@/lib/auth-client';
+import DashboardNavBar from '@/components/DashboardNavBar';
 
 export default function DashboardLayout({
   children,
@@ -168,8 +169,20 @@ export default function DashboardLayout({
         </div>
       </header>
 
-      {/* Main Content */}
-      {children}
+      {/* Main Content Container with Rounded Box */}
+      <div className="bg-white rounded-[40px] shadow-xl overflow-hidden my-4 mx-2 md:mx-4">
+        {/* Global Navigation Bar */}
+        <div className="p-6 lg:p-10">
+          <header className="flex flex-wrap items-center justify-between gap-4 mb-8">
+            <DashboardNavBar />
+          </header>
+
+          {/* Page Content */}
+          <div className="max-w-full">
+            {children}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
