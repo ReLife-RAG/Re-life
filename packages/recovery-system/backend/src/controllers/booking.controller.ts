@@ -1,6 +1,14 @@
 import { Request, Response } from 'express';
 import { BookingService } from '../services/booking.service';
 import { CounselorService } from '../services/counselor.service';
+import { mailService } from '../services/mail.service';
+
+const getBookingEmailMeta = (booking: any) => {
+  const counselorName = booking?.counselorId?.userId?.name || 'Counselor';
+  const userName = booking?.userId?.name;
+  const emailTo = booking?.contactEmail || booking?.userId?.email;
+  return { counselorName, userName, emailTo };
+};
 
 /**
  * POST /api/bookings
@@ -13,15 +21,20 @@ export const createBooking = async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Not authenticated' });
     }
 
-    const { counselorId, slotStart, slotEnd, notes } = req.body;
+    const { counselorId, slotStart, slotEnd, notes, contactEmail } = req.body;
     let { fee } = req.body;
 
     // Validate required fields
-    if (!counselorId || !slotStart || !slotEnd) {
+    if (!counselorId || !slotStart || !slotEnd || !contactEmail) {
       return res.status(400).json({
         error: 'Missing required fields',
-        required: ['counselorId', 'slotStart', 'slotEnd'],
+        required: ['counselorId', 'slotStart', 'slotEnd', 'contactEmail'],
       });
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(String(contactEmail).trim())) {
+      return res.status(400).json({ error: 'Invalid contact email format' });
     }
 
     // Parse dates
@@ -59,8 +72,27 @@ export const createBooking = async (req: Request, res: Response) => {
       slotStart: start,
       slotEnd: end,
       fee,
+      contactEmail,
       notes,
     });
+
+    try {
+      const { counselorName, userName, emailTo } = getBookingEmailMeta(booking);
+      if (emailTo) {
+        await mailService.sendBookingCreatedEmail({
+          to: emailTo,
+          userName,
+          counselorName,
+          slotStart: new Date(booking.slotStart),
+          slotEnd: new Date(booking.slotEnd),
+          fee: booking.fee,
+          bookingId: booking.id,
+          notes: booking.notes,
+        });
+      }
+    } catch (mailError) {
+      console.error('Booking confirmation email send failed:', mailError);
+    }
 
     return res.status(201).json({
       message: 'Booking created successfully',
@@ -80,6 +112,81 @@ export const createBooking = async (req: Request, res: Response) => {
     }
 
     return res.status(500).json({ error: 'Failed to create booking' });
+  }
+};
+
+/**
+ * PATCH /api/bookings/:id/reschedule
+ * Reschedule a booking to another available slot
+ */
+export const rescheduleBooking = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    const { id } = req.params;
+    const { slotStart, slotEnd } = req.body;
+
+    if (!slotStart || !slotEnd) {
+      return res.status(400).json({
+        error: 'Missing required fields',
+        required: ['slotStart', 'slotEnd'],
+      });
+    }
+
+    const start = new Date(slotStart);
+    const end = new Date(slotEnd);
+
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      return res.status(400).json({ error: 'Invalid date format' });
+    }
+
+    if (start >= end) {
+      return res.status(400).json({ error: 'Slot start time must be before end time' });
+    }
+
+    const booking = await BookingService.rescheduleBooking(id, userId, start, end);
+
+    try {
+      const { counselorName, userName, emailTo } = getBookingEmailMeta(booking);
+      if (emailTo) {
+        await mailService.sendBookingRescheduledEmail({
+          to: emailTo,
+          userName,
+          counselorName,
+          slotStart: new Date(booking.slotStart),
+          slotEnd: new Date(booking.slotEnd),
+          fee: booking.fee,
+          bookingId: booking.id,
+        });
+      }
+    } catch (mailError) {
+      console.error('Reschedule email send failed:', mailError);
+    }
+
+    return res.status(200).json({
+      message: 'Booking rescheduled successfully',
+      booking,
+    });
+  } catch (error: any) {
+    console.error('Error rescheduling booking:', error);
+
+    if (error.status === 400) {
+      return res.status(400).json({ error: error.message });
+    }
+    if (error.status === 403) {
+      return res.status(403).json({ error: error.message });
+    }
+    if (error.status === 404) {
+      return res.status(404).json({ error: error.message });
+    }
+    if (error.status === 409) {
+      return res.status(409).json({ error: error.message });
+    }
+
+    return res.status(500).json({ error: 'Failed to reschedule booking' });
   }
 };
 
@@ -163,6 +270,24 @@ export const cancelBooking = async (req: Request, res: Response) => {
     const { cancellationReason } = req.body;
 
     const booking = await BookingService.cancelBooking(id, userId, cancellationReason);
+
+    try {
+      const { counselorName, userName, emailTo } = getBookingEmailMeta(booking);
+      if (emailTo) {
+        await mailService.sendBookingCancelledEmail({
+          to: emailTo,
+          userName,
+          counselorName,
+          slotStart: new Date(booking.slotStart),
+          slotEnd: new Date(booking.slotEnd),
+          fee: booking.fee,
+          bookingId: booking.id,
+          reason: booking.cancellationReason,
+        });
+      }
+    } catch (mailError) {
+      console.error('Cancellation email send failed:', mailError);
+    }
 
     return res.status(200).json({
       message: 'Booking cancelled successfully',
