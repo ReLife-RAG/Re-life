@@ -811,7 +811,7 @@ const Community = () => {
                     onDelete={handleDeletePost}
                     onAddComment={handleAddComment}
                     onDeleteComment={handleDeleteComment}
-                    currentUserId={user?._id}
+                    currentUserId={user?.id}
                     isLoading={isLoading}
                   />
                 ))}
