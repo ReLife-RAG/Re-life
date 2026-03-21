@@ -35,16 +35,22 @@ function StarRating({ rating }: { rating: number }) {
 
 export default function CounselorCard({ counselor, onBook }: CounselorCardProps) {
   const isAvailableToday = counselor.availability === "available_today";
+  const availabilityLabel =
+    counselor.availability === "available_today"
+      ? "Available Today"
+      : counselor.availability === "next_monday"
+      ? "This Week"
+      : "Next Week";
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden group">
+    <div className="bg-white rounded-3xl border border-[#DDE9E8] shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden group p-5">
 
       {/* Top section — avatar, name, title, specialization tags, star rating */}
-      <div className="p-5">
+      <div>
         <div className="flex gap-4">
           {/* Profile photo with a green online dot if available today */}
           <div className="relative shrink-0">
-            <div className="w-16 h-16 rounded-xl overflow-hidden">
+            <div className="w-16 h-16 rounded-full overflow-hidden">
               <img
                 src={counselor.image}
                 alt={counselor.name}
@@ -52,51 +58,60 @@ export default function CounselorCard({ counselor, onBook }: CounselorCardProps)
               />
             </div>
             {isAvailableToday && (
-              <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-[#4caf7d] border-2 border-white rounded-full" />
+              <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-[#86D293] border-2 border-white rounded-full" />
             )}
           </div>
 
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
               <div>
-                <h3 className="font-semibold text-gray-900 text-sm leading-tight">{counselor.name}</h3>
-                <p className="text-xs text-gray-500 mt-0.5">{counselor.title}</p>
+                <h3 className="font-semibold text-[#0f2420] text-base leading-tight">{counselor.name}</h3>
+                <p className="text-xs text-[#6b8a87] mt-0.5">{counselor.title} · {counselor.experience} yrs</p>
               </div>
+              <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border ${isAvailableToday ? "bg-[#EAF7ED] text-[#5fa86e] border-[#b0dfc4]" : "bg-[#EBF4F4] text-[#4A7C7C] border-[#CFE1E1]"}`}>
+                {availabilityLabel}
+              </span>
               <StarRating rating={counselor.rating} />
             </div>
 
             {/* Specialty tags — one green pill per specialization */}
             <div className="flex flex-wrap gap-1 mt-2">
               {counselor.specialty.map((s) => (
-                <span key={s} className="text-xs px-2 py-0.5 rounded-full bg-[#e8f5ee] text-[#2d7a55] font-medium">
+                <span key={s} className="text-xs px-2 py-0.5 rounded-full bg-[#EBF4F4] text-[#4A7C7C] font-medium">
                   {s}
                 </span>
               ))}
             </div>
+
+            {!!counselor.bio && (
+              <p className="text-xs text-[#2d4a47] mt-2 leading-relaxed">
+                {counselor.bio.length > 120 ? `${counselor.bio.slice(0, 120)}...` : counselor.bio}
+              </p>
+            )}
           </div>
         </div>
       </div>
 
       {/* Bottom footer — availability status, price, and the "View & Book" CTA button */}
-      <div className="px-4 py-3 bg-gray-50 border-t border-gray-100 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-        <div className="flex flex-col gap-2 md:gap-0 md:flex-row md:items-center md:gap-4">
+      <div className="mt-4 pt-4 border-t border-[#DDE9E8] flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-4">
           {/* Green dot = available today, amber dot = coming up later */}
           <div className="flex items-center gap-1.5">
-            <span className={`w-2 h-2 rounded-full ${isAvailableToday ? "bg-[#4caf7d]" : "bg-amber-400"}`} />
-            <span className={`text-xs font-semibold uppercase tracking-wide ${isAvailableToday ? "text-[#2d7a55]" : "text-amber-600"}`}>
-              {isAvailableToday ? "Available Today" : "Next: Monday"}
+            <span className={`w-2 h-2 rounded-full ${isAvailableToday ? "bg-[#86D293]" : "bg-[#4A7C7C]"}`} />
+            <span className={`text-xs font-semibold uppercase tracking-wide ${isAvailableToday ? "text-[#5fa86e]" : "text-[#4A7C7C]"}`}>
+              {availabilityLabel}
             </span>
           </div>
-          <span className="text-sm font-semibold text-gray-700">
+          <span className="text-sm font-semibold text-[#0f2420]">
             ${counselor.fee}
-            <span className="text-xs font-normal text-gray-400"> / session</span>
+            <span className="text-xs font-normal text-[#6b8a87]"> / session</span>
           </span>
         </div>
 
         {/* Clicking this passes the counselor up to the parent to open the BookingModal */}
         <button
           onClick={() => onBook(counselor)}
-          className="w-full md:w-auto px-4 py-1.5 rounded-full border border-[#4caf7d] text-[#2d7a55] text-xs font-semibold hover:bg-[#4caf7d] hover:text-white transition-all duration-200"
+          className="w-full md:w-auto px-4 py-2 rounded-xl border border-transparent bg-gradient-to-r from-[#4A7C7C] to-[#86D293] text-white text-xs font-semibold hover:opacity-95 transition-all duration-200"
         >
           View & Book
         </button>

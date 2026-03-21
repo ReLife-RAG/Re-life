@@ -40,23 +40,23 @@ export default function CounselorFilters({ filters, onChange }: CounselorFilters
   };
 
   return (
-    <aside className="w-56 shrink-0">
+    <aside className="w-64 shrink-0 bg-white border border-[#DDE9E8] rounded-2xl p-5 shadow-sm">
       {/* Header row with title and reset button */}
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-2">
-          <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 text-[#6b8a87]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 010 2H4a1 1 0 01-1-1zm3 6a1 1 0 011-1h10a1 1 0 010 2H7a1 1 0 01-1-1zm4 6a1 1 0 011-1h4a1 1 0 010 2h-4a1 1 0 01-1-1z" />
           </svg>
-          <span className="font-semibold text-gray-800 text-sm">Filters</span>
+          <span className="font-semibold text-[#0f2420] text-sm">Filters</span>
         </div>
-        <button type="button" onClick={resetFilters} className="text-xs text-[#4caf7d] font-medium hover:underline">
+        <button type="button" onClick={resetFilters} className="text-xs text-[#4A7C7C] font-medium hover:underline">
           RESET
         </button>
       </div>
 
       {/* Specialization checkboxes — each click calls toggleSpecialization() */}
       <div className="mb-6">
-        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+        <p className="text-xs font-semibold text-[#6b8a87] uppercase tracking-wider mb-3">
           Specialization
         </p>
         <div className="space-y-2.5">
@@ -65,10 +65,10 @@ export default function CounselorFilters({ filters, onChange }: CounselorFilters
             return (
               <label key={spec} className="flex items-center gap-3 cursor-pointer group">
                 {/* Custom styled checkbox — green when checked, grey border when not */}
-                <div
+                  <div
                   onClick={() => toggleSpecialization(spec)}
                   className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${
-                    checked ? "bg-[#4caf7d] border-[#4caf7d]" : "border-gray-300 group-hover:border-[#4caf7d]"
+                    checked ? "bg-[#4A7C7C] border-[#4A7C7C]" : "border-[#C8DCDB] group-hover:border-[#4A7C7C]"
                   }`}
                 >
                   {checked && (
@@ -77,7 +77,7 @@ export default function CounselorFilters({ filters, onChange }: CounselorFilters
                     </svg>
                   )}
                 </div>
-                <span className={`text-sm transition-colors ${checked ? "text-gray-900 font-medium" : "text-gray-600"}`}>
+                <span className={`text-sm transition-colors ${checked ? "text-[#0f2420] font-medium" : "text-[#2d4a47]"}`}>
                   {spec}
                 </span>
               </label>
@@ -88,7 +88,7 @@ export default function CounselorFilters({ filters, onChange }: CounselorFilters
 
       {/* Availability options — selecting one highlights it and deselects the previous */}
       <div>
-        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+        <p className="text-xs font-semibold text-[#6b8a87] uppercase tracking-wider mb-3">
           Availability
         </p>
         <div className="space-y-1.5">
@@ -101,8 +101,8 @@ export default function CounselorFilters({ filters, onChange }: CounselorFilters
                 onClick={() => onChange({ ...filters, availability: option })}
                 className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                   active
-                    ? "bg-[#e8f5ee] text-[#2d7a55] border border-[#b2dfca]"
-                    : "text-gray-600 hover:bg-gray-50"
+                    ? "bg-[#EBF4F4] text-[#4A7C7C] border border-[#CFE1E1]"
+                    : "text-[#2d4a47] hover:bg-[#F4F9F8]"
                 }`}
               >
                 {option}

@@ -17,23 +17,23 @@ export default function CounselorPageToggle({
   onTabChange,
 }: CounselorPageToggleProps) {
   return (
-    <div className="inline-flex items-center bg-gray-100 rounded-full p-0.5 md:p-1">
+    <div className="inline-flex items-center rounded-xl p-1 border border-[#DDE9E8] bg-[#F4F9F8]">
       <button
         onClick={() => onTabChange("find")}
-        className={`px-3 md:px-5 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-medium transition-all duration-200 ${
+        className={`px-3 md:px-5 py-1.5 md:py-2 rounded-lg text-xs md:text-sm font-medium transition-all duration-200 ${
           activeTab === "find"
-            ? "bg-white text-gray-900 shadow-sm"
-            : "text-gray-500 hover:text-gray-700"
+            ? "bg-white text-[#0f2420] shadow-sm"
+            : "text-[#6b8a87] hover:text-[#2d4a47]"
         }`}
       >
         Find Counselors
       </button>
       <button
         onClick={() => onTabChange("sessions")}
-        className={`px-3 md:px-5 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-medium transition-all duration-200 ${
+        className={`px-3 md:px-5 py-1.5 md:py-2 rounded-lg text-xs md:text-sm font-medium transition-all duration-200 ${
           activeTab === "sessions"
-            ? "bg-white text-gray-900 shadow-sm"
-            : "text-gray-500 hover:text-gray-700"
+            ? "bg-white text-[#0f2420] shadow-sm"
+            : "text-[#6b8a87] hover:text-[#2d4a47]"
         }`}
       >
         My Sessions
