@@ -149,7 +149,7 @@ function Toast({ msg, type, onClose }: { msg: string; type: 'success' | 'error' 
   const border = type === 'error' ? '#fca5a5' : type === 'info' ? C.tealLight : '#b0dfc4';
   const color = type === 'error' ? '#dc2626' : type === 'info' ? C.tealDark : '#166534';
   return (
-    <div style={{ position: 'fixed', bottom: 24, right: 24, background: bg, border: `1px solid ${border}`, borderRadius: 14, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10, boxShadow: '0 8px 24px rgba(0,0,0,.1)', zIndex: 9999, maxWidth: 340, fontFamily: "'DM Sans', sans-serif", animation: 'slideIn .25s ease' }}>
+    <div style={{ position: 'fixed', bottom: 16, left: 16, right: 16, background: bg, border: `1px solid ${border}`, borderRadius: 14, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10, boxShadow: '0 8px 24px rgba(0,0,0,.1)', zIndex: 9999, maxWidth: 420, margin: '0 auto', fontFamily: "'DM Sans', sans-serif", animation: 'slideIn .25s ease' }}>
       <CheckCircle2 size={16} strokeWidth={2} color={color} />
       <span style={{ flex: 1, fontSize: 13, fontWeight: 500, color }}>{msg}</span>
       <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color, display: 'flex' }}><X size={14} /></button>
@@ -427,14 +427,16 @@ export default function DashboardPage() {
                 {checkedIn ? "You've checked in today — keep the momentum going." : "Start your day with a check-in below."}
               </p>
             </div>
-            <div style={{ display: 'flex', gap: 10 }}>
+            <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:gap-2.5">
               <button onClick={() => setShowMoodPop(true)}
+                className="flex-1 justify-center sm:flex-none"
                 style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 18px', borderRadius: 12, border: `1.5px solid ${C.border}`, background: C.surface, color: C.inkMid, fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", transition: 'all .15s' }}
                 onMouseEnter={e => { e.currentTarget.style.borderColor = C.teal; e.currentTarget.style.color = C.teal; }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.inkMid; }}>
                 <BarChart3 size={15} strokeWidth={2} /> Log Mood
               </button>
               <Link href="/progress"
+                className="flex-1 justify-center sm:flex-none"
                 style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 18px', borderRadius: 12, border: 'none', background: C.teal, color: '#fff', fontSize: 13, fontWeight: 600, textDecoration: 'none', fontFamily: "'DM Sans', sans-serif" }}>
                 <Activity size={15} strokeWidth={2} /> View Progress
               </Link>
@@ -443,7 +445,7 @@ export default function DashboardPage() {
         </div>
 
         {/* ═══ HERO STATS STRIP ═══ */}
-        <div className="dash-fi dash-fi-1" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 24 }}>
+        <div className="dash-fi dash-fi-1 grid grid-cols-1 gap-3.5 sm:grid-cols-2 xl:grid-cols-4" style={{ marginBottom: 24 }}>
           {/* Streak — featured card */}
           <div className="hover-lift" style={{ ...card, background: `linear-gradient(135deg, ${C.teal} 0%, ${C.tealDark} 100%)`, borderColor: 'transparent', padding: '22px 20px', position: 'relative', overflow: 'hidden' }}>
             <div style={{ position: 'absolute', top: -20, right: -20, width: 80, height: 80, borderRadius: '50%', background: 'rgba(255,255,255,.08)' }} />
@@ -507,7 +509,7 @@ export default function DashboardPage() {
         </div>
 
         {/* ═══ MAIN GRID ═══ */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 20 }}>
+        <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
 
           {/* ── LEFT COLUMN ── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20, minWidth: 0 }}>
