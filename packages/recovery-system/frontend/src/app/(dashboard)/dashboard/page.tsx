@@ -196,12 +196,18 @@ export default function DashboardPage() {
   // Show mood popup 2s after load if not logged today
   useEffect(() => {
     if (loading) return;
-    const todayLogged = moodLog.some(e => new Date(e.date).toDateString() === new Date().toDateString());
-    if (!todayLogged) {
-      popTimerRef.current = setTimeout(() => setShowMoodPop(true), 2000);
+    
+    // We only show it once per session to not annoy the user on every navigation back to dashboard
+    const hasShownThisSession = sessionStorage.getItem('moodPopupShown');
+    
+    if (!hasShownThisSession) {
+      popTimerRef.current = setTimeout(() => {
+        setShowMoodPop(true);
+        sessionStorage.setItem('moodPopupShown', 'true');
+      }, 2000);
     }
     return () => { if (popTimerRef.current) clearTimeout(popTimerRef.current); };
-  }, [loading, moodLog]);
+  }, [loading]);
 
   // ── Derived ──
   const streakDays    = streak?.currentStreak ?? 0;
