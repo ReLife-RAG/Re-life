@@ -8,6 +8,7 @@ import BookingModal from "@/components/counselors/BookingModal";
 import { Counselor, FilterState, SessionBooking, TimeSlot } from "@/components/counselors/types";
 
 const API_BASE = "";
+const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,700&family=DM+Sans:wght@300;400;500;600;700&display=swap');`;
 
 type RawCounselor = {
   _id: string;
@@ -322,20 +323,36 @@ export default function CounselorsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-5xl mx-auto px-4 md:px-6 py-6 md:py-8">
-        <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-3">
+    <div className="min-h-screen bg-[#F4F9F8]" style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}>
+      <style>{FONTS}</style>
+      <div className="max-w-6xl mx-auto px-4 md:px-6 py-6 md:py-8">
+        <div className="flex items-center gap-1.5 text-xs text-[#6b8a87] mb-3">
           <span>Portal</span>
           <span>{">"}</span>
-          <span className="text-gray-600">Counseling</span>
+          <span className="text-[#2d4a47]">Counseling</span>
         </div>
 
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between mb-7">
-          <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Find Your Guide</h1>
+          <h1 className="text-3xl md:text-4xl text-[#0f2420] tracking-tight" style={{ fontFamily: "'Fraunces', serif", fontWeight: 400 }}>Find Your Guide</h1>
           <CounselorPageToggle activeTab={activeTab} onTabChange={setActiveTab} />
         </div>
 
-        {pageError && <p className="text-sm text-red-600 mb-4">{pageError}</p>}
+        {pageError && <p className="text-sm text-red-600 mb-4 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{pageError}</p>}
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
+          <div className="bg-white border border-[#DDE9E8] rounded-2xl p-4 shadow-sm">
+            <p className="text-xs uppercase tracking-wider text-[#6b8a87] mb-1">Verified & Licensed</p>
+            <p className="text-sm text-[#2d4a47]">All counselors are credentialed professionals</p>
+          </div>
+          <div className="bg-white border border-[#DDE9E8] rounded-2xl p-4 shadow-sm">
+            <p className="text-xs uppercase tracking-wider text-[#6b8a87] mb-1">Recovery Specialists</p>
+            <p className="text-sm text-[#2d4a47]">Addiction and mental health focused support</p>
+          </div>
+          <div className="bg-white border border-[#DDE9E8] rounded-2xl p-4 shadow-sm">
+            <p className="text-xs uppercase tracking-wider text-[#6b8a87] mb-1">Continuous Care</p>
+            <p className="text-sm text-[#2d4a47]">Book, manage, and reschedule in one place</p>
+          </div>
+        </div>
 
         {activeTab === "find" ? (
           <div className="flex flex-col lg:flex-row gap-8">
@@ -344,14 +361,14 @@ export default function CounselorsPage() {
             </div>
 
             <div className="flex-1">
-              <p className="text-sm text-gray-400 mb-4">
+              <p className="text-sm text-[#6b8a87] mb-4">
                 {filteredCounselors.length} counselor{filteredCounselors.length !== 1 ? "s" : ""} found
               </p>
 
               {filteredCounselors.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 text-center">
-                  <p className="text-gray-500 font-medium">No counselors match your filters</p>
-                  <p className="text-gray-400 text-sm mt-1">Try adjusting your filters</p>
+                <div className="flex flex-col items-center justify-center py-20 text-center bg-white border border-[#DDE9E8] rounded-3xl">
+                  <p className="text-[#2d4a47] font-medium">No counselors match your filters</p>
+                  <p className="text-[#6b8a87] text-sm mt-1">Try adjusting your filters</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -365,14 +382,14 @@ export default function CounselorsPage() {
         ) : (
           <div>
             {bookingsLoading ? (
-              <p className="text-gray-500">Loading sessions...</p>
+              <p className="text-[#6b8a87]">Loading sessions...</p>
             ) : bookings.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-24 text-center">
-                <p className="text-gray-600 font-semibold text-lg">No sessions booked yet</p>
-                <p className="text-gray-400 text-sm mt-1 mb-5">Find a counselor and book your first session</p>
+              <div className="flex flex-col items-center justify-center py-24 text-center bg-white border border-[#DDE9E8] rounded-3xl">
+                <p className="text-[#2d4a47] font-semibold text-lg">No sessions booked yet</p>
+                <p className="text-[#6b8a87] text-sm mt-1 mb-5">Find a counselor and book your first session</p>
                 <button
                   onClick={() => setActiveTab("find")}
-                  className="px-5 py-2.5 rounded-full bg-[#4caf7d] text-white text-sm font-semibold hover:bg-[#3d9e6d] transition-colors"
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#4A7C7C] to-[#86D293] text-white text-sm font-semibold hover:opacity-95 transition-colors"
                 >
                   Browse Counselors
                 </button>
@@ -384,14 +401,14 @@ export default function CounselorsPage() {
                     booking.status === "confirmed" && new Date(booking.slotStart).getTime() > Date.now();
 
                   return (
-                    <div key={booking.id} className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
+                    <div key={booking.id} className="bg-white border border-[#DDE9E8] rounded-2xl p-4 shadow-sm">
                       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                         <div>
-                          <p className="text-sm text-gray-500">Counselor</p>
-                          <p className="font-semibold text-gray-900">{booking.counselorName}</p>
-                          <p className="text-sm text-gray-600 mt-1">{formatSlot(booking.slotStart, booking.slotEnd)}</p>
-                          <p className="text-sm text-gray-600">Fee: ${booking.fee}</p>
-                          <p className="text-sm text-gray-600">Status: {booking.status}</p>
+                          <p className="text-sm text-[#6b8a87]">Counselor</p>
+                          <p className="font-semibold text-[#0f2420]">{booking.counselorName}</p>
+                          <p className="text-sm text-[#2d4a47] mt-1">{formatSlot(booking.slotStart, booking.slotEnd)}</p>
+                          <p className="text-sm text-[#2d4a47]">Fee: ${booking.fee}</p>
+                          <p className="text-sm text-[#2d4a47]">Status: {booking.status}</p>
                         </div>
 
                         <div className="flex gap-2">
@@ -400,7 +417,7 @@ export default function CounselorsPage() {
                             onClick={() => openReschedule(booking)}
                             className={`px-3 py-2 rounded-full text-sm font-semibold ${
                               canChange
-                                ? "bg-[#e8f5ee] text-[#2d7a55] hover:bg-[#d5efe3]"
+                                ? "bg-[#EBF4F4] text-[#4A7C7C] hover:bg-[#DDE9E8]"
                                 : "bg-gray-100 text-gray-400 cursor-not-allowed"
                             }`}
                           >
@@ -448,7 +465,7 @@ export default function CounselorsPage() {
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-lg w-full max-w-lg p-5">
             <h3 className="text-lg font-semibold text-gray-900">Change Session Slot</h3>
-            <p className="text-sm text-gray-500 mb-4">Choose a new available slot for {rescheduleTarget.counselorName}</p>
+            <p className="text-sm text-[#6b8a87] mb-4">Choose a new available slot for {rescheduleTarget.counselorName}</p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-60 overflow-auto">
               {rescheduleSlots.length === 0 ? (
@@ -460,8 +477,8 @@ export default function CounselorsPage() {
                     onClick={() => setSelectedRescheduleSlot(slot)}
                     className={`px-3 py-2 rounded-lg border text-sm ${
                       selectedRescheduleSlot?.start === slot.start && selectedRescheduleSlot?.end === slot.end
-                        ? "bg-[#4caf7d] border-[#4caf7d] text-white"
-                        : "border-gray-200 text-gray-700 hover:border-[#4caf7d]"
+                        ? "bg-[#EBF4F4] border-[#4A7C7C] text-[#4A7C7C]"
+                        : "border-[#DDE9E8] text-[#2d4a47] hover:border-[#4A7C7C]"
                     }`}
                   >
                     {slot.time}
@@ -473,7 +490,7 @@ export default function CounselorsPage() {
             <div className="mt-4 flex justify-end gap-2">
               <button
                 onClick={() => setRescheduleTarget(null)}
-                className="px-4 py-2 rounded-full border border-gray-200 text-gray-700"
+                className="px-4 py-2 rounded-full border border-[#DDE9E8] text-[#2d4a47]"
               >
                 Close
               </button>
@@ -481,7 +498,7 @@ export default function CounselorsPage() {
                 disabled={!selectedRescheduleSlot || rescheduleLoading}
                 onClick={submitReschedule}
                 className={`px-4 py-2 rounded-full text-white ${
-                  selectedRescheduleSlot ? "bg-[#4caf7d]" : "bg-gray-300"
+                  selectedRescheduleSlot ? "bg-gradient-to-r from-[#4A7C7C] to-[#86D293]" : "bg-gray-300"
                 }`}
               >
                 {rescheduleLoading ? "Updating..." : "Confirm Change"}
@@ -492,8 +509,8 @@ export default function CounselorsPage() {
       )}
 
       {bookingSuccess && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-gray-900 text-white px-4 md:px-5 py-3 rounded-full text-xs md:text-sm font-medium shadow-xl flex items-center gap-2 animate-bounce mx-4">
-          <span className="w-5 h-5 rounded-full bg-[#4caf7d] flex items-center justify-center flex-shrink-0">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-[#0f2420] text-white px-4 md:px-5 py-3 rounded-full text-xs md:text-sm font-medium shadow-xl flex items-center gap-2 mx-4">
+          <span className="w-5 h-5 rounded-full bg-[#86D293] flex items-center justify-center flex-shrink-0">
             <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
             </svg>
