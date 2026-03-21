@@ -36,6 +36,10 @@ const FONT_LINK = `
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
 .gl-fi{animation:fadeUp .35s both;}
 .gl-fi-1{animation-delay:.05s;}.gl-fi-2{animation-delay:.1s;}.gl-fi-3{animation-delay:.15s;}
+@media (max-width: 1100px){
+  .gl-layout{grid-template-columns:1fr!important;gap:16px!important;padding:20px 14px!important;}
+  .gl-sidebar{position:static!important;top:auto!important;}
+}
 `;
 
 /* ── Per-game icon map (Lucide) ── */
@@ -182,11 +186,11 @@ export default function GamesList() {
     <div className="gl-root">
 
       {/* Toast */}
-      <div style={{ position:'fixed',bottom:28,left:'50%',transform:`translateX(-50%) translateY(${toast.visible?0:10}px)`,background:toastBg,color:'#fff',padding:'10px 20px',borderRadius:12,fontSize:13,fontWeight:500,zIndex:9999,opacity:toast.visible?1:0,pointerEvents:'none',transition:'all .25s',boxShadow:'0 8px 24px rgba(10,15,13,.2)',whiteSpace:'nowrap' }}>
+      <div style={{ position:'fixed',bottom:16,left:16,right:16,margin:'0 auto',maxWidth:420,transform:`translateY(${toast.visible?0:10}px)`,background:toastBg,color:'#fff',padding:'10px 20px',borderRadius:12,fontSize:13,fontWeight:500,zIndex:9999,opacity:toast.visible?1:0,pointerEvents:'none',transition:'all .25s',boxShadow:'0 8px 24px rgba(10,15,13,.2)',textAlign:'center' }}>
         {toast.msg}
       </div>
 
-      <div style={{ maxWidth:1220,margin:'0 auto',padding:'28px 20px',display:'grid',gridTemplateColumns:'200px 1fr 260px',gap:24,alignItems:'start' }}>
+      <div className="gl-layout" style={{ maxWidth:1220,margin:'0 auto',padding:'28px 20px',display:'grid',gridTemplateColumns:'200px 1fr 260px',gap:24,alignItems:'start' }}>
 
         {/* ── LEFT SIDEBAR ── */}
         <aside className="gl-sidebar">

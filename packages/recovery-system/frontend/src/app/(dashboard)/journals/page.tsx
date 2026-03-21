@@ -168,17 +168,17 @@ function EntryEditor({ entry, onSave, onCancel, saving }: {
   return (
     <div>
       {/* Top bar */}
-      <div style={{ display:'flex', alignItems:'center', gap:12, paddingBottom:20, marginBottom:24, borderBottom:`1px solid ${C.border}` }}>
+      <div className="editor-topbar" style={{ display:'flex', alignItems:'center', gap:12, paddingBottom:20, marginBottom:24, borderBottom:`1px solid ${C.border}` }}>
         <button onClick={onCancel}
           style={{ display:'flex', alignItems:'center', gap:7, padding:'8px 16px', borderRadius:10, border:`1.5px solid ${C.border}`, background:'transparent', fontSize:13, color:C.inkMid, fontWeight:500, cursor:'pointer', fontFamily:'inherit', whiteSpace:'nowrap' as const }}
           onMouseEnter={e => { e.currentTarget.style.borderColor=C.teal; e.currentTarget.style.color=C.teal; }}
           onMouseLeave={e => { e.currentTarget.style.borderColor=C.border; e.currentTarget.style.color=C.inkMid; }}>
           <ArrowLeft size={16} strokeWidth={2} /> Back
         </button>
-        <div style={{ display:'flex', alignItems:'center', gap:6, fontSize:12, color:C.inkMuted, flex:1, justifyContent:'center' }}>
+        <div className="editor-date" style={{ display:'flex', alignItems:'center', gap:6, fontSize:12, color:C.inkMuted, flex:1, justifyContent:'center' }}>
           <Calendar size={13} strokeWidth={2} color={C.inkMuted} /> {today}
         </div>
-        <button onClick={submit} disabled={saving}
+        <button onClick={submit} disabled={saving} className="editor-save"
           style={{ display:'flex', alignItems:'center', gap:7, padding:'10px 22px', borderRadius:12, border:'none', background:`linear-gradient(135deg,${C.teal},${C.green})`, color:'#fff', fontSize:13, fontWeight:700, cursor:saving?'not-allowed':'pointer', fontFamily:'inherit', whiteSpace:'nowrap' as const, boxShadow:'0 4px 14px rgba(64,115,142,.28)', opacity:saving?.7:1, transition:'opacity .15s' }}>
           {saving ? <><RefreshCw size={14} style={{ animation:'spin 1s linear infinite' }} /> Saving…</> : <><Check size={14} strokeWidth={2.5} /> {entry ? 'Update Entry' : 'Save Entry'}</>}
         </button>
@@ -191,7 +191,7 @@ function EntryEditor({ entry, onSave, onCancel, saving }: {
       )}
 
       {/* Two-column layout */}
-      <div style={{ display:'grid', gridTemplateColumns:'290px 1fr', gap:22 }}>
+      <div className="editor-2col" style={{ display:'grid', gridTemplateColumns:'290px 1fr', gap:22 }}>
 
         {/* ── Left panel ── */}
         <div style={{ display:'flex', flexDirection:'column' as const, gap:16 }}>
@@ -269,7 +269,7 @@ function EntryEditor({ entry, onSave, onCancel, saving }: {
               <span style={{ fontSize:11, fontWeight:700, color:C.inkMuted, textTransform:'uppercase' as const, letterSpacing:'.1em' }}>Your thoughts</span>
               <span style={{ fontSize:12, fontWeight:600, color:words>0?C.teal:C.inkMuted }}>{words} {words===1?'word':'words'}</span>
             </div>
-            <textarea value={content} onChange={e => setContent(e.target.value)}
+            <textarea value={content} onChange={e => setContent(e.target.value)} className="editor-textarea"
               placeholder="What's on your mind today? This is your safe space…"
               style={{ flex:1, width:'100%', minHeight:440, padding:'14px 18px', border:'none', fontSize:15, lineHeight:1.85, color:C.ink, background:'transparent', resize:'none' as const, outline:'none', fontFamily:"'DM Serif Display', Georgia, serif", boxSizing:'border-box' as const }}
             />
@@ -292,7 +292,7 @@ function EntryDetail({ entry, onClose, onEdit }: { entry: JournalEntry; onClose:
   return (
     <div>
       {/* Header */}
-      <div style={{ display:'flex', alignItems:'center', gap:14, paddingBottom:20, marginBottom:24, borderBottom:`1px solid ${C.border}` }}>
+      <div className="detail-head" style={{ display:'flex', alignItems:'center', gap:14, paddingBottom:20, marginBottom:24, borderBottom:`1px solid ${C.border}` }}>
         <button onClick={onClose}
           style={{ display:'flex', alignItems:'center', gap:7, padding:'8px 16px', borderRadius:10, border:`1.5px solid ${C.border}`, background:'transparent', fontSize:13, color:C.inkMid, fontWeight:500, cursor:'pointer', fontFamily:'inherit' }}
           onMouseEnter={e => { e.currentTarget.style.borderColor=C.teal; e.currentTarget.style.color=C.teal; }}
@@ -335,7 +335,7 @@ function EntryDetail({ entry, onClose, onEdit }: { entry: JournalEntry; onClose:
         </div>
 
         {(entry.triggers.length > 0 || entry.copingStrategies.length > 0) && (
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
+          <div className="detail-tags-2" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
             {entry.triggers.length > 0 && (
               <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:14, padding:'14px 16px' }}>
                 <div style={{ display:'flex', alignItems:'center', gap:6, fontSize:10, fontWeight:700, color:C.inkMuted, textTransform:'uppercase' as const, letterSpacing:'.1em', marginBottom:10 }}>
@@ -455,7 +455,7 @@ function StatsBar({ entries }: { entries: JournalEntry[] }) {
   const topCfg  = topMood ? MOOD_CFG[topMood[0]] : null;
 
   return (
-    <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12, marginBottom:24 }}>
+    <div className="stats-4" style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12, marginBottom:24 }}>
       {[
         { icon:<FileText  size={18} strokeWidth={1.8} color={C.teal}    />, value:String(total), label:'Total Entries', bg:C.tealFaint  },
         { icon:<BookOpen  size={18} strokeWidth={1.8} color={C.tealDark}/>, value:String(words), label:'Total Words',   bg:C.tealFaint  },
@@ -567,6 +567,15 @@ export default function JournalsPage() {
           .cards-auto{grid-template-columns:1fr!important;}
           .detail-tags-2{grid-template-columns:1fr!important;}
           .page-h1{font-size:28px!important;}
+          .editor-topbar{flex-wrap:wrap;gap:10px!important;}
+          .editor-date{order:3;flex-basis:100%;justify-content:flex-start!important;}
+          .editor-save{width:100%;justify-content:center;}
+          .editor-textarea{min-height:320px!important;line-height:1.75!important;}
+          .detail-head{flex-wrap:wrap;}
+          .filter-wrap > *{width:100%;}
+        }
+        @media(max-width:480px){
+          .stats-4{grid-template-columns:1fr!important;}
         }
       `}</style>
 
@@ -612,7 +621,7 @@ export default function JournalsPage() {
         {mode==='list' && (
           <>
             {/* Filter bar */}
-            <div className="jfi jfi-1" style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:18, padding:'14px 18px', marginBottom:20, boxShadow:'0 2px 8px rgba(64,115,142,.05)', display:'flex', gap:10, flexWrap:'wrap', alignItems:'center' }}>
+            <div className="jfi jfi-1 filter-wrap" style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:18, padding:'14px 18px', marginBottom:20, boxShadow:'0 2px 8px rgba(64,115,142,.05)', display:'flex', gap:10, flexWrap:'wrap', alignItems:'center' }}>
               <div style={{ position:'relative', flex:1, minWidth:200 }}>
                 <Search size={14} strokeWidth={2} color={C.inkMuted} style={{ position:'absolute', left:12, top:'50%', transform:'translateY(-50%)', pointerEvents:'none' }} />
                 <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search entries, triggers…"

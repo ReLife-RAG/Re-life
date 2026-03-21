@@ -1,6 +1,9 @@
-import os
+import json
+import hashlib
+from pathlib import Path
 from typing import List, Dict, Any
 from langchain_community.document_loaders import PyPDFDirectoryLoader
+from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_pinecone import PineconeVectorStore
@@ -34,11 +37,88 @@ class RAGService:
             convert_system_message_to_human=True
         )
 
-    def load_and_index_documents(self, directory_path: str = "./data/documents"):
-        """Load PDF documents and create embeddings in Pinecone"""
-        # Load PDFs
+    def _load_pdf_documents(self, directory_path: str) -> List[Document]:
+        if not Path(directory_path).exists():
+            return []
         loader = PyPDFDirectoryLoader(directory_path)
-        documents = loader.load()
+        return loader.load()
+
+    def _to_text(self, value: Any) -> str:
+        if isinstance(value, str):
+            return value
+        if isinstance(value, (dict, list)):
+            return json.dumps(value, ensure_ascii=False)
+        return str(value)
+
+    def _normalize_json_record(self, record: Any) -> str:
+        if not isinstance(record, dict):
+            return self._to_text(record)
+
+        priority_fields = ["title", "question", "prompt", "category", "summary", "content", "answer"]
+        lines: List[str] = []
+
+        for field in priority_fields:
+            if field in record and record[field] not in (None, "", []):
+                lines.append(f"{field}: {self._to_text(record[field])}")
+
+        for key, value in record.items():
+            if key in priority_fields:
+                continue
+            if value in (None, "", []):
+                continue
+            lines.append(f"{key}: {self._to_text(value)}")
+
+        return "\n".join(lines) if lines else self._to_text(record)
+
+    def _load_json_documents(self, directory_path: str) -> List[Document]:
+        docs: List[Document] = []
+        json_dir = Path(directory_path)
+
+        if not json_dir.exists():
+            return docs
+
+        for json_file in sorted(json_dir.glob("*.json")):
+            try:
+                with json_file.open("r", encoding="utf-8") as f:
+                    data = json.load(f)
+            except Exception:
+                continue
+
+            if isinstance(data, list):
+                for i, item in enumerate(data):
+                    docs.append(
+                        Document(
+                            page_content=self._normalize_json_record(item),
+                            metadata={"source": json_file.name, "type": "json", "record": i},
+                        )
+                    )
+            else:
+                docs.append(
+                    Document(
+                        page_content=self._normalize_json_record(data),
+                        metadata={"source": json_file.name, "type": "json"},
+                    )
+                )
+
+        return docs
+
+    def _build_stable_chunk_id(self, doc: Document, chunk_index: int) -> str:
+        source = str(doc.metadata.get("source", "unknown"))
+        doc_type = str(doc.metadata.get("type", "pdf"))
+        page = str(doc.metadata.get("page", "na"))
+        record = str(doc.metadata.get("record", "na"))
+        fingerprint_input = f"{source}|{doc_type}|{page}|{record}|{doc.page_content}".encode("utf-8", errors="ignore")
+        digest = hashlib.sha1(fingerprint_input).hexdigest()[:16]
+        return f"{source}:{doc_type}:{chunk_index}:{digest}"
+
+    def load_and_index_documents(self, pdf_directory_path: str = "./data/documents", json_directory_path: str = "./data/json"):
+        """Load PDF and JSON documents and create embeddings in Pinecone."""
+        pdf_documents = self._load_pdf_documents(pdf_directory_path)
+        json_documents = self._load_json_documents(json_directory_path)
+        documents = pdf_documents + json_documents
+
+        if not documents:
+            return 0
 
         # Split documents
         text_splitter = RecursiveCharacterTextSplitter(
@@ -47,8 +127,9 @@ class RAGService:
         )
         splits = text_splitter.split_documents(documents)
 
-        # Add to vector store
-        self.vector_store.add_documents(splits)
+        # Use deterministic IDs so re-running ingestion upserts instead of duplicating vectors.
+        vector_ids = [self._build_stable_chunk_id(doc, i) for i, doc in enumerate(splits)]
+        self.vector_store.add_documents(splits, ids=vector_ids)
 
         return len(splits)
 

@@ -170,9 +170,9 @@ export default function DashboardLayout({
       </header>
 
       {/* Main Content Container with Rounded Box */}
-      <div className="bg-white rounded-[40px] shadow-xl overflow-hidden my-4 mx-2 md:mx-4">
+      <div className="my-3 mx-2 overflow-hidden rounded-2xl bg-white shadow-xl sm:my-4 sm:mx-4 sm:rounded-[32px]">
         {/* Global Navigation Bar */}
-        <div className="p-6 lg:p-10">
+        <div className="p-4 sm:p-6 lg:p-10">
           <header className="flex flex-wrap items-center justify-between gap-4 mb-8">
             <DashboardNavBar />
           </header>

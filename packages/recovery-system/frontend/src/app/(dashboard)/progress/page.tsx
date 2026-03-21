@@ -465,6 +465,18 @@ export default function ProgressPage() {
         .pfi-1{animation-delay:.05s;} .pfi-2{animation-delay:.1s;} .pfi-3{animation-delay:.15s;} .pfi-4{animation-delay:.2s;}
         .p-hover { transition: transform .15s, box-shadow .15s; }
         .p-hover:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(74,124,124,.12) !important; }
+        @media (max-width: 1024px) {
+          .p-grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+          .p-overview-grid, .p-mood-grid, .p-goals-grid, .p-calendar-grid, .p-tools-grid { grid-template-columns: 1fr !important; }
+          .p-goal-summary { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+          .p-milestones-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+        }
+        @media (max-width: 768px) {
+          .p-grid-4, .p-goal-summary, .p-milestones-grid, .p-relapse-stats { grid-template-columns: 1fr !important; }
+          .p-tabs { width: 100% !important; }
+          .p-calendar-controls { flex-wrap: wrap; justify-content: center; }
+          .p-calendar-month { min-width: 0 !important; flex: 1; text-align: center !important; }
+        }
       `}</style>
 
       <main style={{ maxWidth: 1400, margin: '0 auto', padding: '0 0 40px', fontFamily: "'DM Sans', system-ui, sans-serif", color: C.ink }}>
@@ -492,7 +504,7 @@ export default function ProgressPage() {
         </div>
 
         {/* ── Stats strip ── */}
-        <div className="pfi pfi-1" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14, marginBottom: 24 }}>
+        <div className="pfi pfi-1 p-grid-4" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14, marginBottom: 24 }}>
           {/* Streak */}
           <div className="p-hover" style={{ ...card, background: `linear-gradient(135deg, ${C.teal}, ${C.tealDark})`, borderColor: 'transparent', padding: '22px 20px', position: 'relative', overflow: 'hidden' }}>
             <div style={{ position: 'absolute', top: -20, right: -20, width: 80, height: 80, borderRadius: '50%', background: 'rgba(255,255,255,.08)' }} />
@@ -538,7 +550,7 @@ export default function ProgressPage() {
         </div>
 
         {/* ── Tabs ── */}
-        <div className="pfi pfi-1" style={{ display: 'flex', gap: 4, background: C.offWhite, borderRadius: 16, padding: 4, width: 'fit-content', marginBottom: 24, overflowX: 'auto' }}>
+        <div className="pfi pfi-1 p-tabs" style={{ display: 'flex', gap: 4, background: C.offWhite, borderRadius: 16, padding: 4, width: 'fit-content', marginBottom: 24, overflowX: 'auto' }}>
           {[
             { id: 'overview', label: 'Overview'    },
             { id: 'mood',     label: 'Mood'        },
@@ -555,7 +567,7 @@ export default function ProgressPage() {
 
         {/* ══════════════════ OVERVIEW ══════════════════ */}
         {tab === 'overview' && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 18 }}>
+          <div className="p-overview-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 18 }}>
             {/* Sparkline — spans 2 cols */}
             <div className="pfi pfi-2 p-hover" style={{ ...card, padding: '24px', gridColumn: 'span 2' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
@@ -619,7 +631,7 @@ export default function ProgressPage() {
                   <Award size={18} strokeWidth={2} color={C.warn} />
                   <p style={{ fontFamily: "'Fraunces', serif", fontSize: 20, fontWeight: 400, color: C.ink }}>Milestones</p>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12 }}>
+                <div className="p-milestones-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12 }}>
                   {streak.milestones.map((m, i) => (
                     <div key={i} style={{ padding: '16px', borderRadius: 14, background: m.achieved ? C.greenFaint : C.offWhite, border: `1px solid ${m.achieved ? '#b0dfc4' : C.border}`, transition: 'all .2s' }}>
                       <div style={{ width: 32, height: 32, borderRadius: 10, background: m.achieved ? C.green : C.border, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
@@ -639,7 +651,7 @@ export default function ProgressPage() {
 
         {/* ══════════════════ MOOD ══════════════════ */}
         {tab === 'mood' && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 18 }}>
+          <div className="p-mood-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 18 }}>
             {/* Logger */}
             <div className="pfi pfi-2" style={{ ...card, padding: '24px', gridColumn: 'span 2' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18 }}>
@@ -775,7 +787,7 @@ export default function ProgressPage() {
         {tab === 'goals' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             {/* Summary */}
-            <div className="pfi pfi-2" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14 }}>
+            <div className="pfi pfi-2 p-goal-summary" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14 }}>
               {[
                 { label: 'Total Goals',   val: goals.length,                          color: C.teal,      bg: C.tealFaint  },
                 { label: 'In Progress',   val: goals.filter(g => !g.completed).length, color: C.warn,     bg: C.warnFaint  },
@@ -808,7 +820,7 @@ export default function ProgressPage() {
                 <button onClick={() => setShowGoalModal(true)} style={{ padding: '11px 28px', borderRadius: 999, border: 'none', background: `linear-gradient(135deg, ${C.teal}, ${C.green})`, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Set Your First Goal</button>
               </div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14 }}>
+              <div className="p-goals-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14 }}>
                 {goals.map(goal => {
                   const pct     = goalPct(goal);
                   const elapsed = Math.floor((Date.now() - new Date(goal.startDate).getTime()) / 86400000);
@@ -854,18 +866,18 @@ export default function ProgressPage() {
 
         {/* ══════════════════ CALENDAR ══════════════════ */}
         {tab === 'calendar' && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 18 }}>
+          <div className="p-calendar-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 18 }}>
             <div className="pfi pfi-2 p-hover" style={{ ...card, padding: '26px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <Calendar size={17} strokeWidth={2} color={C.teal} />
                   <p style={{ fontFamily: "'Fraunces', serif", fontSize: 20, fontWeight: 400, color: C.ink }}>Check-in Calendar</p>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div className="p-calendar-controls" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <button onClick={() => setCalMonth(new Date(calMonth.getFullYear(), calMonth.getMonth() - 1, 1))} style={{ width: 32, height: 32, borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <ChevronLeft size={15} strokeWidth={2} color={C.inkMid} />
                   </button>
-                  <span style={{ fontSize: 14, fontWeight: 600, color: C.ink, minWidth: 140, textAlign: 'center' }}>
+                  <span className="p-calendar-month" style={{ fontSize: 14, fontWeight: 600, color: C.ink, minWidth: 140, textAlign: 'center' }}>
                     {calMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                   </span>
                   <button onClick={() => setCalMonth(new Date(calMonth.getFullYear(), calMonth.getMonth() + 1, 1))} style={{ width: 32, height: 32, borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -977,7 +989,7 @@ export default function ProgressPage() {
 
         {/* ══════════════════ TOOLS ══════════════════ */}
         {tab === 'tools' && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
+          <div className="p-tools-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
 
             {/* Streak Freeze */}
             <div className="pfi pfi-2 p-hover" style={{ ...card, padding: '24px' }}>
@@ -1064,7 +1076,7 @@ export default function ProgressPage() {
               <div style={{ background: C.greenFaint, border: `1px solid ${C.tealLight}`, borderRadius: 12, padding: '12px 14px', marginBottom: 14 }}>
                 <p style={{ fontSize: 13, color: C.tealDark, lineHeight: 1.5 }}>Logging setbacks honestly is a courageous act. Every log is a step forward, not backward.</p>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, marginBottom: 14 }}>
+              <div className="p-relapse-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, marginBottom: 14 }}>
                 {[
                   { label: 'Total',    val: relapses.length,                                       color: C.inkMid  },
                   { label: 'Minor',    val: relapses.filter(r => r.severity === 'minor').length,    color: C.warn    },

@@ -296,6 +296,7 @@ const toYoutubeEmbed = (url: string) => {
 };
 
 const API_URL = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000");
+const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,700&family=DM+Sans:wght@300;400;500;600;700&display=swap');`;
 
 export default function ResourcesPage() {
   const [filter, setFilter] = useState<FilterKind>("all");
@@ -476,25 +477,28 @@ export default function ResourcesPage() {
   };
 
   return (
-    <main className="mx-auto max-w-[1400px] px-4 py-8 sm:px-6 lg:px-8">
+    <main className="mx-auto max-w-[1400px] px-4 py-8 sm:px-6 lg:px-8 bg-[#F4F9F8]" style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}>
+      <style>{FONTS}</style>
       <div className="flex flex-col gap-8">
         <div>
-          <p className="text-sm font-semibold text-[#90A3BF]">Portal &gt; Library</p>
-          <h1 className="mt-2 text-4xl font-bold tracking-tight text-[#102A43]">Resource Hub</h1>
+          <p className="text-sm font-semibold text-[#6b8a87]">Portal &gt; Library</p>
+          <h1 className="mt-2 text-4xl tracking-tight text-[#0f2420]" style={{ fontFamily: "'Fraunces', serif", fontWeight: 400 }}>Resource Hub</h1>
         </div>
 
-        <div className="inline-flex w-full rounded-full bg-[#EEF2F6] p-1 sm:w-auto">
-          {topFilters.map((item) => (
-            <button
-              key={item.key}
-              onClick={() => setFilter(item.key)}
-              className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
-                filter === item.key ? "bg-[#7BC89A] text-white shadow-sm" : "text-[#7188A8] hover:bg-white/60"
-              }`}
-            >
-              {item.label}
-            </button>
-          ))}
+        <div className="w-full overflow-x-auto pb-1">
+          <div className="inline-flex min-w-max rounded-full border border-[#DDE9E8] bg-[#EBF4F4] p-1">
+            {topFilters.map((item) => (
+              <button
+                key={item.key}
+                onClick={() => setFilter(item.key)}
+                className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-semibold transition sm:px-5 sm:text-sm ${
+                  filter === item.key ? "bg-[#86D293] text-white shadow-sm" : "text-[#2d4a47] hover:bg-white/60"
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
@@ -505,7 +509,7 @@ export default function ResourcesPage() {
                   {filteredResources.map((item) => (
                     <article
                       key={item.id}
-                      className="flex h-full flex-col overflow-hidden rounded-3xl border border-[#E8EEF4] bg-white shadow-[0_8px_24px_rgba(15,55,95,0.06)]"
+                      className="flex h-full flex-col overflow-hidden rounded-3xl border border-[#DDE9E8] bg-white shadow-[0_8px_24px_rgba(74,124,124,0.08)]"
                     >
                       <div className="relative h-44 w-full overflow-hidden bg-[#F3F7FC]">
                         {/* Image now takes about half of each article/podcast card for better visual balance. */}
@@ -524,22 +528,22 @@ export default function ResourcesPage() {
                             {item.kind === "video" && <Video className="h-8 w-8" />}
                           </div>
                         )}
-                        <div className="absolute right-3 top-3 rounded-full bg-white/90 px-3 py-1 text-xs font-bold uppercase tracking-wide text-[#5E7290]">
+                        <div className="absolute right-3 top-3 rounded-full bg-white/90 px-3 py-1 text-xs font-bold uppercase tracking-wide text-[#2d4a47]">
                           {item.kind}
                         </div>
                       </div>
 
                       <div className="flex h-full flex-col p-5">
                         <div className="flex items-center justify-between">
-                          <p className="text-sm font-semibold text-[#5E7290]">{item.creator}</p>
-                          <p className="text-sm font-semibold text-[#A1AEC3]">{item.duration || "-"}</p>
+                          <p className="text-sm font-semibold text-[#4A7C7C]">{item.creator}</p>
+                          <p className="text-sm font-semibold text-[#6b8a87]">{item.duration || "-"}</p>
                         </div>
 
-                        <h2 className="mt-3 text-[1.95rem] font-bold leading-snug text-[#102A43]">{item.title}</h2>
-                        <p className="mt-2 text-sm leading-relaxed text-[#7D8EA8]">{item.description}</p>
+                        <h2 className="mt-3 text-[1.65rem] leading-[1.15] text-[#0f2420]" style={{ fontFamily: "'Fraunces', serif", fontWeight: 400 }}>{item.title}</h2>
+                        <p className="mt-2 text-sm leading-relaxed text-[#2d4a47]">{item.description}</p>
 
                         <div className="mt-auto flex items-center justify-between pt-5">
-                          <span className="rounded-full bg-[#EAF7EF] px-3 py-1 text-xs font-bold uppercase tracking-wider text-[#6FB98C]">
+                          <span className="rounded-full bg-[#EAF7EF] px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-[#6FB98C]">
                             {item.category}
                           </span>
                           <div className="flex items-center gap-2">
@@ -558,7 +562,7 @@ export default function ResourcesPage() {
                             {item.kind === "article" && (
                               <button
                                 onClick={() => openResource(item)}
-                                className="rounded-xl bg-[#4E8A7A] p-2 text-white transition hover:bg-[#3E7466]"
+                                className="rounded-xl bg-[#4A7C7C] p-2 text-white transition hover:bg-[#3a6060]"
                                 aria-label={`Read ${item.title}`}
                               >
                                 <ExternalLink className="h-5 w-5" />
@@ -568,7 +572,7 @@ export default function ResourcesPage() {
                             {item.kind === "audio" && (
                               <button
                                 onClick={() => openResource(item)}
-                                className="rounded-xl bg-[#4E8A7A] p-2 text-white transition hover:bg-[#3E7466]"
+                                className="rounded-xl bg-[#4A7C7C] p-2 text-white transition hover:bg-[#3a6060]"
                                 aria-label={`Play ${item.title}`}
                               >
                                 <PlayCircle className="h-5 w-5" />
@@ -578,7 +582,7 @@ export default function ResourcesPage() {
                             {item.kind === "video" && (
                               <button
                                 onClick={() => openResource(item)}
-                                className="rounded-xl bg-[#4E8A7A] p-2 text-white transition hover:bg-[#3E7466]"
+                                className="rounded-xl bg-[#4A7C7C] p-2 text-white transition hover:bg-[#3a6060]"
                                 aria-label={`Watch ${item.title}`}
                               >
                                 <Video className="h-5 w-5" />
@@ -596,14 +600,14 @@ export default function ResourcesPage() {
 
             {filter === "video" && (
               <section className="space-y-4">
-                <h2 className="text-2xl font-bold text-[#102A43]">Video Section</h2>
+                <h2 className="text-2xl text-[#0f2420]" style={{ fontFamily: "'Fraunces', serif", fontWeight: 400 }}>Video Section</h2>
                 <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
                   {videoResources.map((video) => {
                     const thumbnail = toYoutubeThumbnail(video.youtubeUrl || "");
                     return (
                       <article
                         key={`${video.id}-video-card`}
-                        className="overflow-hidden rounded-3xl border border-[#E4EBF3] bg-white shadow-[0_8px_20px_rgba(15,55,95,0.06)]"
+                        className="overflow-hidden rounded-3xl border border-[#DDE9E8] bg-white shadow-[0_8px_20px_rgba(74,124,124,0.08)]"
                       >
                         <button
                           type="button"
@@ -632,9 +636,9 @@ export default function ResourcesPage() {
                         </button>
 
                         <div className="p-4">
-                          <h3 className="text-xl font-bold leading-snug text-[#102A43]">{video.title}</h3>
-                          <p className="mt-1 text-sm font-semibold text-[#7C8EA8]">{video.creator}</p>
-                          <p className="mt-2 text-sm leading-relaxed text-[#6B7D97]">{video.description}</p>
+                          <h3 className="text-xl leading-snug text-[#0f2420]" style={{ fontFamily: "'Fraunces', serif", fontWeight: 400 }}>{video.title}</h3>
+                          <p className="mt-1 text-sm font-semibold text-[#4A7C7C]">{video.creator}</p>
+                          <p className="mt-2 text-sm leading-relaxed text-[#2d4a47]">{video.description}</p>
                         </div>
                       </article>
                     );
@@ -645,8 +649,8 @@ export default function ResourcesPage() {
           </section>
 
           <aside className="space-y-5">
-            <section className="rounded-3xl bg-[#3F7D6D] p-6 text-white shadow-[0_10px_30px_rgba(45,95,82,0.3)]">
-              <h2 className="text-2xl font-bold">Saved Content</h2>
+            <section className="rounded-3xl bg-[#4A7C7C] p-6 text-white shadow-[0_10px_30px_rgba(74,124,124,0.35)]">
+              <h2 className="text-2xl" style={{ fontFamily: "'Fraunces', serif", fontWeight: 400 }}>Saved Content</h2>
               <p className="mt-2 text-sm text-[#CDE6DD]">Access your bookmarked therapy guides and media offline.</p>
               <div className="mt-4 space-y-3">
                 {savedItems.length === 0 && <p className="text-sm text-[#D6ECE4]">No bookmarks yet.</p>}
@@ -655,7 +659,7 @@ export default function ResourcesPage() {
                     key={item.id}
                     type="button"
                     onClick={() => openResource(item)}
-                    className="w-full rounded-2xl bg-[#568F81] px-4 py-3 text-left text-sm font-semibold transition hover:bg-[#67A293]"
+                    className="w-full rounded-2xl bg-[#3a6060] px-4 py-3 text-left text-sm font-semibold transition hover:bg-[#2d4a47]"
                   >
                     {item.title.length > 34 ? `${item.title.slice(0, 34)}...` : item.title}
                   </button>
@@ -663,16 +667,16 @@ export default function ResourcesPage() {
               </div>
             </section>
 
-            <section className="rounded-3xl border border-[#E4EBF3] bg-white p-6">
-              <h2 className="text-2xl font-bold text-[#102A43]">Popular Topics</h2>
+            <section className="rounded-3xl border border-[#DDE9E8] bg-white p-6">
+              <h2 className="text-2xl text-[#0f2420]" style={{ fontFamily: "'Fraunces', serif", fontWeight: 400 }}>Popular Topics</h2>
               <div className="mt-4 flex flex-wrap gap-2">
                 <button
                   type="button"
                   onClick={() => setActiveTopic(null)}
-                  className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                  className={`rounded-full border px-4 py-2 text-xs font-semibold transition ${
                     !activeTopic
-                      ? "border-[#7BC89A] bg-[#EAF7EF] text-[#3A7A57]"
-                      : "border-[#DCE4EF] bg-[#F8FAFD] text-[#8696AF] hover:bg-[#EEF3F8]"
+                      ? "border-[#86D293] bg-[#EAF7ED] text-[#3a6060]"
+                      : "border-[#DDE9E8] bg-[#F4F9F8] text-[#6b8a87] hover:bg-[#EBF4F4]"
                   }`}
                 >
                   #All
@@ -682,10 +686,10 @@ export default function ResourcesPage() {
                     key={name}
                     type="button"
                     onClick={() => setActiveTopic((prev) => (prev === name ? null : name))}
-                    className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                    className={`rounded-full border px-4 py-2 text-xs font-semibold transition ${
                       activeTopic === name
-                        ? "border-[#7BC89A] bg-[#EAF7EF] text-[#3A7A57]"
-                        : "border-[#DCE4EF] bg-[#F8FAFD] text-[#8696AF] hover:bg-[#EEF3F8]"
+                        ? "border-[#86D293] bg-[#EAF7ED] text-[#3a6060]"
+                        : "border-[#DDE9E8] bg-[#F4F9F8] text-[#6b8a87] hover:bg-[#EBF4F4]"
                     }`}
                   >
                     #{name}
@@ -698,11 +702,11 @@ export default function ResourcesPage() {
       </div>
 
       {selectedArticle && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0B1625]/70 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0f2420]/70 p-4">
           <section className="max-h-[90vh] w-full max-w-4xl overflow-hidden rounded-3xl bg-white shadow-2xl">
-            <div className="flex items-start justify-between border-b border-[#E4EBF3] p-5">
+            <div className="flex items-start justify-between border-b border-[#DDE9E8] p-5">
               <div>
-                <h3 className="text-2xl font-bold text-[#102A43]">{selectedArticle.title}</h3>
+                <h3 className="text-2xl text-[#0f2420]" style={{ fontFamily: "'Fraunces', serif", fontWeight: 400 }}>{selectedArticle.title}</h3>
               </div>
               <button
                 type="button"
@@ -727,11 +731,11 @@ export default function ResourcesPage() {
       )}
 
       {selectedPodcast && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0B1625]/70 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0f2420]/70 p-4">
           <section className="w-full max-w-2xl rounded-3xl bg-white p-6 shadow-2xl">
             <div className="flex items-start justify-between">
               <div>
-                <h3 className="text-2xl font-bold text-[#102A43]">{selectedPodcast.title}</h3>
+                <h3 className="text-2xl text-[#0f2420]" style={{ fontFamily: "'Fraunces', serif", fontWeight: 400 }}>{selectedPodcast.title}</h3>
               </div>
               <button
                 type="button"
@@ -751,12 +755,12 @@ export default function ResourcesPage() {
       )}
 
       {selectedVideo && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0B1625]/75 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0f2420]/75 p-4">
           <section className="w-full max-w-5xl overflow-hidden rounded-3xl bg-white shadow-2xl">
-            <div className="flex items-start justify-between border-b border-[#E4EBF3] p-5">
+            <div className="flex items-start justify-between border-b border-[#DDE9E8] p-5">
               <div>
-                <h3 className="text-2xl font-bold text-[#102A43]">{selectedVideo.title}</h3>
-                <p className="mt-1 text-sm font-semibold text-[#7C8EA8]">{selectedVideo.creator}</p>
+                <h3 className="text-2xl text-[#0f2420]" style={{ fontFamily: "'Fraunces', serif", fontWeight: 400 }}>{selectedVideo.title}</h3>
+                <p className="mt-1 text-sm font-semibold text-[#4A7C7C]">{selectedVideo.creator}</p>
               </div>
               <button
                 type="button"

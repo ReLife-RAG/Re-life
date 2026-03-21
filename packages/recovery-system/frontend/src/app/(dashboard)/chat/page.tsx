@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback, KeyboardEvent, useMemo } from 'react';
+import Image from 'next/image';
 import { useAuth } from '@/context/AuthContext';
 import { chatService, ChatConversation, ChatHistoryItem, ChatMessage } from '@/lib/chat-client';
 import {
-  Bot,
   Send,
   Plus,
   Trash2,
@@ -279,6 +279,18 @@ function TypingDots() {
   );
 }
 
+function ChatLogo({ size }: { size: number }) {
+  return (
+    <Image
+      src="/images/chatlogo.png"
+      alt="Re-Life Assistant"
+      width={size}
+      height={size}
+      style={{ borderRadius: '50%', objectFit: 'cover' }}
+    />
+  );
+}
+
 function MessageBubble({ msg, onCopy }: { msg: ChatMessage; onCopy: (text: string) => void }) {
   const isUser = msg.role === 'user';
   const [copied, setCopied] = useState(false);
@@ -300,11 +312,11 @@ function MessageBubble({ msg, onCopy }: { msg: ChatMessage; onCopy: (text: strin
         <div
           style={{ width: 32, height: 32, borderRadius: '50%', flexShrink: 0, background: `linear-gradient(135deg, ${C.teal}, ${C.green})`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 2px 8px ${C.teal}30` }}
         >
-          <Bot size={15} strokeWidth={2} color="#fff" />
+          <ChatLogo size={24} />
         </div>
       )}
 
-      <div style={{ maxWidth: '72%', display: 'flex', flexDirection: 'column', alignItems: isUser ? 'flex-end' : 'flex-start' }}>
+      <div style={{ maxWidth: 'min(82%, 720px)', display: 'flex', flexDirection: 'column', alignItems: isUser ? 'flex-end' : 'flex-start' }}>
         <div
           style={{
             padding: isUser ? '11px 16px' : '14px 18px',
@@ -344,7 +356,7 @@ function EmptyState({ onPrompt, userName }: { onPrompt: (p: string) => void; use
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, padding: '40px 24px', textAlign: 'center' }}>
       <div style={{ width: 72, height: 72, borderRadius: '50%', background: `linear-gradient(135deg, ${C.teal}, ${C.green})`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20, boxShadow: `0 8px 32px ${C.teal}30` }}>
-        <Bot size={32} strokeWidth={1.8} color="#fff" />
+        <ChatLogo size={52} />
       </div>
       <h2 style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 26, fontWeight: 400, color: C.ink, marginBottom: 8, letterSpacing: '-.2px' }}>
         Hello, {userName}
@@ -355,7 +367,7 @@ function EmptyState({ onPrompt, userName }: { onPrompt: (p: string) => void; use
 
       <div style={{ width: '100%', maxWidth: 560 }}>
         <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: C.inkMuted, marginBottom: 14 }}>Quick starts</p>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10 }}>
           {QUICK_PROMPTS.map(({ Icon, label, prompt }) => (
             <button
               key={label}
@@ -391,6 +403,7 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [isMobileView, setIsMobileView] = useState(false);
   const [scrolledUp, setScrolledUp] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -432,6 +445,20 @@ export default function ChatPage() {
     },
     [activeId]
   );
+
+  useEffect(() => {
+    const updateViewport = () => {
+      const mobile = window.innerWidth <= 900;
+      setIsMobileView(mobile);
+      if (mobile) {
+        setSidebarOpen(false);
+      }
+    };
+
+    updateViewport();
+    window.addEventListener('resize', updateViewport);
+    return () => window.removeEventListener('resize', updateViewport);
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -630,12 +657,18 @@ export default function ChatPage() {
         .chat-scroll::-webkit-scrollbar-track { background: transparent; }
         .chat-scroll::-webkit-scrollbar-thumb { background: ${C.tealLight}; border-radius: 999px; }
         .chat-layout { display: flex; height: calc(100dvh - 150px); }
+        .mobile-backdrop {
+          position: absolute;
+          inset: 0;
+          background: rgba(15, 36, 32, 0.36);
+          z-index: 20;
+        }
         @media (max-width: 900px) {
           .chat-layout { height: calc(100dvh - 130px); }
         }
       `}</style>
 
-      <main style={{ maxWidth: 1400, margin: '0 auto', padding: '24px 16px', height: '100dvh' }}>
+      <main style={{ maxWidth: 1400, margin: '0 auto', padding: isMobileView ? '12px 8px' : '24px 16px', height: '100dvh' }}>
         <div style={{ marginBottom: 14 }}>
           <p style={{ fontSize: 12, color: C.inkMuted, marginBottom: 4 }}>
             Portal &rsaquo; <strong style={{ color: C.inkMid, fontWeight: 600 }}>AI Assistant</strong>
@@ -655,6 +688,15 @@ export default function ChatPage() {
             position: 'relative',
           }}
         >
+          {isMobileView && sidebarOpen && (
+            <button
+              className="mobile-backdrop"
+              onClick={() => setSidebarOpen(false)}
+              aria-label="Close chat sidebar"
+              style={{ border: 'none', cursor: 'pointer' }}
+            />
+          )}
+
           <div
             style={{
               width: sidebarOpen ? 280 : 0,
@@ -665,13 +707,19 @@ export default function ChatPage() {
               flexDirection: 'column',
               background: C.surface,
               borderRight: `1px solid ${C.border}`,
+              position: isMobileView ? 'absolute' : 'relative',
+              top: isMobileView ? 0 : 'auto',
+              left: isMobileView ? 0 : 'auto',
+              bottom: isMobileView ? 0 : 'auto',
+              zIndex: isMobileView ? 30 : 'auto',
+              boxShadow: isMobileView && sidebarOpen ? '0 8px 30px rgba(15,36,32,.18)' : 'none',
             }}
           >
             <div style={{ width: 280, display: 'flex', flexDirection: 'column', height: '100%' }}>
               <div style={{ padding: '20px 16px 14px', borderBottom: `1px solid ${C.border}` }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
                   <div style={{ width: 34, height: 34, borderRadius: '50%', background: `linear-gradient(135deg, ${C.teal}, ${C.green})`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Bot size={16} strokeWidth={2} color="#fff" />
+                    <ChatLogo size={24} />
                   </div>
                   <div>
                     <p style={{ fontFamily: "'Fraunces', serif", fontSize: 16, fontWeight: 400, color: C.ink, lineHeight: 1 }}>Re-Life AI</p>
@@ -703,7 +751,10 @@ export default function ChatPage() {
                         <div
                           key={conv.id}
                           style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 8, padding: '9px 10px', borderRadius: 12, cursor: 'pointer', transition: 'background .15s', background: conv.id === activeId ? C.tealFaint : 'transparent', marginBottom: 2 }}
-                          onClick={() => setActiveId(conv.id)}
+                          onClick={() => {
+                            setActiveId(conv.id);
+                            if (isMobileView) setSidebarOpen(false);
+                          }}
                         >
                           <MessageSquare size={14} strokeWidth={2} color={conv.id === activeId ? C.teal : C.inkMuted} style={{ flexShrink: 0 }} />
                           <div style={{ flex: 1, minWidth: 0 }}>
@@ -751,7 +802,7 @@ export default function ChatPage() {
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
                 <div style={{ width: 36, height: 36, borderRadius: '50%', background: `linear-gradient(135deg, ${C.teal}, ${C.green})`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Bot size={16} strokeWidth={2} color="#fff" />
+                  <ChatLogo size={25} />
                 </div>
                 <div style={{ minWidth: 0 }}>
                   <p style={{ fontFamily: "'Fraunces', serif", fontSize: 16, fontWeight: 400, color: C.ink, lineHeight: 1 }}>Re-Life Assistant</p>
@@ -784,7 +835,7 @@ export default function ChatPage() {
                   {loading && (
                     <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, marginBottom: 12, animation: 'msgIn .3s ease both' }}>
                       <div style={{ width: 32, height: 32, borderRadius: '50%', background: `linear-gradient(135deg, ${C.teal}, ${C.green})`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <Bot size={15} strokeWidth={2} color="#fff" />
+                        <ChatLogo size={24} />
                       </div>
                       <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: '18px 18px 18px 4px', boxShadow: '0 2px 8px rgba(15,36,32,.06)', minWidth: 64 }}>
                         <TypingDots />

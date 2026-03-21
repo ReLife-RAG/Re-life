@@ -22,28 +22,28 @@ export default function DashboardNavBar() {
     return pathname?.startsWith(href);
   };
 
-  const activeItem = NAV_ITEMS.find((item) => isActive(item.href));
-
   return (
-    <div className="flex flex-wrap items-center justify-between gap-4">
-      <div className="flex items-center gap-2">
-        <div className="w-10 h-10 bg-[#86D293] rounded-xl flex items-center justify-center text-white">
+    <div className="w-full">
+      <div className="flex items-start gap-2 sm:items-center">
+        <div className="h-10 w-10 flex-shrink-0 rounded-xl bg-[#86D293] flex items-center justify-center text-white">
           <BrainCircuit size={24} />
         </div>
-        <div className="flex bg-[#F3F7F3] rounded-full p-1 gap-1">
-          {NAV_ITEMS.map((item) => (
-            <Link
-              key={item.name}
-              href={item.href}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                isActive(item.href)
-                  ? "bg-[#86D293] text-white shadow-sm"
-                  : "text-slate-500 hover:text-slate-700"
-              }`}
-            >
-              {item.name}
-            </Link>
-          ))}
+        <div className="min-w-0 flex-1">
+          <div className="grid grid-cols-3 gap-1 rounded-2xl bg-[#F3F7F3] p-1 sm:flex sm:flex-wrap sm:rounded-full">
+            {NAV_ITEMS.map((item) => (
+              <Link
+                key={item.name}
+                href={item.href}
+                className={`whitespace-nowrap rounded-full px-2.5 py-2 text-center text-[11px] font-medium transition-all sm:px-4 sm:text-sm ${
+                  isActive(item.href)
+                    ? "bg-[#86D293] text-white shadow-sm"
+                    : "text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                {item.name}
+              </Link>
+            ))}
+          </div>
         </div>
       </div>
     </div>

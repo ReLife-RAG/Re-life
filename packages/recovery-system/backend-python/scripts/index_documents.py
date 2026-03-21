@@ -1,7 +1,4 @@
-"""
-Document Indexing Script - Load PDFs into Pinecone
-This script reads PDF files from data/documents and indexes them into Pinecone
-"""
+"""Document indexing script for PDF and JSON data into Pinecone."""
 
 import os
 import sys
@@ -17,31 +14,32 @@ from services.rag_service import rag_service
 load_dotenv()
 
 def main():
-    documents_dir = "./data/documents"
-    
-    # Check if documents directory exists
-    if not os.path.exists(documents_dir):
-        print(f"❌ Documents directory not found: {documents_dir}")
-        print(f"📁 Creating directory...")
-        os.makedirs(documents_dir, exist_ok=True)
-        print(f"   Please add PDF files to: {os.path.abspath(documents_dir)}")
+    pdf_dir = "./data/documents"
+    json_dir = "./data/json"
+
+    os.makedirs(pdf_dir, exist_ok=True)
+    os.makedirs(json_dir, exist_ok=True)
+
+    pdf_files = list(Path(pdf_dir).glob("*.pdf"))
+    json_files = list(Path(json_dir).glob("*.json"))
+
+    if not pdf_files and not json_files:
+        print("❌ No source files found to index")
+        print(f"   Add PDFs to: {os.path.abspath(pdf_dir)}")
+        print(f"   Add JSON files to: {os.path.abspath(json_dir)}")
         return
-    
-    # Check if there are PDFs in the directory
-    pdf_files = list(Path(documents_dir).glob("*.pdf"))
-    
-    if not pdf_files:
-        print(f"❌ No PDF files found in {documents_dir}")
-        print(f"📝 Please add PDF files to this directory")
-        return
-    
-    print(f"📚 Found {len(pdf_files)} PDF file(s):")
+
+    print(f"📚 Found {len(pdf_files)} PDF file(s) in {pdf_dir}:")
     for pdf in pdf_files:
         print(f"   - {pdf.name}")
-    
-    print(f"\n⏳ Indexing documents into Pinecone...")
+
+    print(f"🧾 Found {len(json_files)} JSON file(s) in {json_dir}:")
+    for jf in json_files:
+        print(f"   - {jf.name}")
+
+    print("\n⏳ Indexing documents into Pinecone...")
     try:
-        num_chunks = rag_service.load_and_index_documents(documents_dir)
+        num_chunks = rag_service.load_and_index_documents(pdf_dir, json_dir)
         print(f"✅ Successfully indexed {num_chunks} document chunks into Pinecone!")
         print(f"\n🎉 Your RAG system is now ready to use!")
     except Exception as e:
