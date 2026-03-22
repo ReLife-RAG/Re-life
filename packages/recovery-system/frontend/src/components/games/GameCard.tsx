@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   Play, Star, Clock, Users, MoreHorizontal, Shield, Activity,
   Layers, TrendingUp, Wind, BookOpen, Gamepad2, Heart,
-  Share2, EyeOff, Check, ChevronRight, BarChart2,
+  Share2, EyeOff, Check, ChevronRight, BarChart2, LucideIcon,
 } from 'lucide-react';
 import { Game, GameProgress } from '@/types/games.types';
 
@@ -23,7 +23,7 @@ const DIFF_STYLE: Record<string,{bg:string;color:string;label:string}> = {
 };
 
 // Map game name → Lucide icon component
-const GAME_ICONS: Record<string, React.FC<any>> = {
+const GAME_ICONS: Record<string, LucideIcon> = {
   sober:    Shield,
   forest:   Activity,
   habitica: Layers,

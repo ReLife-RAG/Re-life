@@ -1,6 +1,6 @@
 'use client';
 import React, { useState } from 'react';
-import { ArrowLeft, Heart, Shield, Activity, Layers, TrendingUp, Wind, BookOpen, Gamepad2 } from 'lucide-react';
+import { ArrowLeft, Heart, Shield, Activity, Layers, TrendingUp, Wind, BookOpen, Gamepad2, LucideIcon } from 'lucide-react';
 import { Game, GameProgress } from '@/types/games.types';
 import SoberGame    from './games/SoberGame';
 import ForestGame   from './games/ForestGame';
@@ -18,7 +18,7 @@ const CAT_ACCENT: Record<string,string> = {
   substance:'#1a7a4a', social:'#1e40af', behavioral:'#6d28d9',
   pornography:'#b45309', screen:'#dc2626', mindfulness:'#0d7377',
 };
-const GAME_ICONS: Record<string, React.FC<any>> = {
+const GAME_ICONS: Record<string, LucideIcon> = {
   sober:Shield, forest:Activity, habitica:Layers, braver:TrendingUp, mindful:Wind, journal:BookOpen,
 };
 
