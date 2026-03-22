@@ -102,11 +102,10 @@ function TagInput({ label, value, onChange, suggestions, placeholder, accentColo
         </div>
       )}
       <div style={{ position:'relative' }}>
-        <input value={inp} onChange={e => setInp(e.target.value)} onFocus={() => setOpen(true)}
+        <input value={inp} onChange={e => setInp(e.target.value)} onFocus={(e) => { setOpen(true); (e.target as HTMLInputElement).style.borderColor = C.teal; }}
           onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); if (inp.trim()) add(inp); } }}
           placeholder={placeholder}
           style={{ width:'100%', padding:'9px 12px', borderRadius:10, border:`1.5px solid ${C.border}`, fontSize:13, color:C.ink, background:C.surface, outline:'none', boxSizing:'border-box' as const, fontFamily:'inherit' }}
-          onFocus={e => (e.target.style.borderColor = C.teal)}
           onBlur={e => { e.target.style.borderColor = C.border; setTimeout(() => setOpen(false), 120); }} />
         {open && (suggestions.filter(s => s.toLowerCase().includes(inp.toLowerCase()) && !value.includes(s)).length > 0 || inp.trim()) && (
           <div style={{ position:'absolute', top:'calc(100% + 4px)', left:0, right:0, background:C.surface, border:`1px solid ${C.border}`, borderRadius:12, boxShadow:'0 12px 32px rgba(64,115,142,.14)', zIndex:60, maxHeight:200, overflowY:'auto' as const, padding:'4px 0' }}>
