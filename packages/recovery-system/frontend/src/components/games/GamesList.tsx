@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Flame, Gamepad2, Layers, Users, Trophy, Star, TrendingUp,
   BookOpen, Brain, Shield, Wind, LayoutGrid, ChevronRight,
-  Activity,
+  Activity, LucideIcon,
 } from 'lucide-react';
 import { Game, GameProgress, LeaderboardEntry, RecentActivity } from '@/types/games.types';
 import { gamesApi } from '@/lib/gamesApi';
@@ -43,7 +43,7 @@ const FONT_LINK = `
 `;
 
 /* ── Per-game icon map (Lucide) ── */
-const GAME_ICON: Record<string, React.FC<{size?:number;color?:string;strokeWidth?:number}>> = {
+const GAME_ICON: Record<string, LucideIcon> = {
   sober:    Shield,
   forest:   Activity,
   habitica: Layers,
