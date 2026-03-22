@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import CommunityPost from "../models/Community";
+import { createNotification } from "./notification.controller";
 
 declare global {
   namespace Express {
@@ -398,6 +399,16 @@ export const toggleLike = async (req: Request, res: Response) => {
     } else {
       // Like
       post.likes.push(user.id);
+      
+      // Create notification for post author
+      await createNotification(
+        post.authorId,
+        user.id,
+        user.name,
+        'like',
+        postId,
+        post.content
+      );
     }
 
     await post.save();
@@ -554,6 +565,18 @@ export const addComment = async (req: Request, res: Response) => {
     };
 
     post.comments.push(newComment);
+    
+    // Create notification for post author
+    await createNotification(
+      post.authorId,
+      user.id,
+      user.name,
+      'comment',
+      postId,
+      post.content,
+      content.trim()
+    );
+    
     await post.save();
     await post.populate("authorId", "name email");
 

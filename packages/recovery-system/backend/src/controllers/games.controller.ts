@@ -1,35 +1,13 @@
 import { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import { Game, GameProgress, DailyCheckIn, Leaderboard } from '../models/Game';
+import { syncLeaderboardHelper } from './progress.controller';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const todayStr  = (): string  => new Date().toISOString().slice(0, 10);
 const getUserId = (req: Request): string =>
   (req as any).user?.id?.toString() || (req as any).user?._id?.toString();
 const isValidId = (id: string): boolean => mongoose.Types.ObjectId.isValid(id);
-
-async function syncLeaderboard(userId: string): Promise<void> {
-  try {
-    const progresses = await GameProgress.find({ userId });
-    const total  = progresses.reduce((s, p) => s + (p.totalPoints    ?? 0), 0);
-    const streak = progresses.reduce((m, p) => Math.max(m, p.currentStreak ?? 0), 0);
-    const anonUsername = `User#${userId.toString().slice(-4).toUpperCase()}`;
-
-    await Leaderboard.findOneAndUpdate(
-      { userId },
-      { $set: { anonUsername, totalPoints: total, currentStreak: streak, lastUpdated: new Date() } },
-      { upsert: true, new: true }
-    );
-
-    const all = await Leaderboard.find().sort({ totalPoints: -1 });
-    const ops = all.map((e, i) => ({
-      updateOne: { filter: { _id: e._id }, update: { $set: { rank: i + 1 } } }
-    }));
-    if (ops.length) await Leaderboard.bulkWrite(ops);
-  } catch (err) {
-    console.error('syncLeaderboard:', err);
-  }
-}
 
 // ── GET /games ─────────────────────────────────────────────────────────────────
 export const getGames = async (req: Request, res: Response): Promise<void> => {
@@ -175,7 +153,7 @@ export const updateGameProgress = async (req: Request, res: Response): Promise<v
     ).populate('gameId', 'name title category icon color');
 
     // Sync leaderboard asynchronously (don't block response)
-    syncLeaderboard(userId).catch(console.error);
+    syncLeaderboardHelper(userId).catch(console.error);
 
     res.json({ success: true, data: progress });
   } catch (err) {
@@ -242,7 +220,7 @@ export const dailyCheckIn = async (req: Request, res: Response): Promise<void> =
       userId, date: today, mood, gamesPlayed, pointsEarned, notes
     });
 
-    syncLeaderboard(userId).catch(console.error);
+    syncLeaderboardHelper(userId).catch(console.error);
     res.json({ success: true, data: { checkIn, pointsEarned } });
   } catch (err) {
     console.error('dailyCheckIn:', err);
@@ -266,6 +244,50 @@ export const getLeaderboard = async (req: Request, res: Response): Promise<void>
   } catch (err) {
     console.error('getLeaderboard:', err);
     res.status(500).json({ success: false, message: 'Failed to fetch leaderboard' });
+  }
+};
+
+// ── GET /games/stats/user ─────────────────────────────────────────────────────
+// Returns aggregated stats for the current user including total points from all games
+export const getUserStats = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = getUserId(req);
+    if (!isValidId(userId)) {
+      res.status(400).json({ success: false, message: 'Invalid user ID' }); return;
+    }
+
+    // Get all game progress for user
+    const gameProgresses = await GameProgress.find({ userId });
+    
+    // Calculate totals
+    const totalGamePoints = gameProgresses.reduce((sum, p) => sum + (p.totalPoints ?? 0), 0);
+    const bestGameStreak = gameProgresses.length > 0 
+      ? Math.max(...gameProgresses.map(p => p.currentStreak ?? 0))
+      : 0;
+    const longestGameStreak = gameProgresses.length > 0
+      ? Math.max(...gameProgresses.map(p => p.longestStreak ?? 0))
+      : 0;
+    const gamesPlayed = gameProgresses.length;
+
+    res.json({ 
+      success: true, 
+      data: {
+        totalGamePoints,
+        bestGameStreak,
+        longestGameStreak,
+        gamesPlayed,
+        breakdown: gameProgresses.map(p => ({
+          gameId: p.gameId,
+          gameType: p.gameType,
+          points: p.totalPoints,
+          streak: p.currentStreak,
+          longestStreak: p.longestStreak,
+        }))
+      }
+    });
+  } catch (err) {
+    console.error('getUserStats:', err);
+    res.status(500).json({ success: false, message: 'Failed to fetch user stats' });
   }
 };
 

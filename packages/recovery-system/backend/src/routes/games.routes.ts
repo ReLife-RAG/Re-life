@@ -10,6 +10,7 @@ import {
   dailyCheckIn,
   getLeaderboard,
   getRecentActivity,
+  getUserStats,
 } from '../controllers/games.controller';
 import { isAuth } from '../middleware/isAuth';
 
@@ -22,6 +23,7 @@ router.get('/leaderboard', getLeaderboard);   // GET /games/leaderboard
 // ── Protected — apply isAuth to everything below ──────────────────────────────
 router.use(isAuth);
 
+router.get('/stats/user',           getUserStats);          // GET  /games/stats/user
 router.get('/progress',            getAllUserProgress);    // GET  /games/progress
 router.get('/progress/:gameId',    getUserGameProgress);  // GET  /games/progress/:gameId
 router.put('/progress/:gameId',    updateGameProgress);   // PUT  /games/progress/:gameId
