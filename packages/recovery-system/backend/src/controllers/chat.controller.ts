@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import axios from "axios";
+import mongoose from "mongoose";
 import User from "../models/User";
 import Journal from "../models/Journal";
 import Progress from "../models/Progress";
@@ -11,6 +12,22 @@ const MAX_CONTEXT_MESSAGES = 12;
 const MAX_IMPORTANT_DETAILS = 30;
 
 const normalizeObjectId = (value: unknown): string => String(value || "").trim();
+const isValidObjectId = (value: string): boolean => mongoose.Types.ObjectId.isValid(value);
+
+const resolveUserFromSession = async (sessionUser: any) => {
+    const sessionUserId = normalizeObjectId(sessionUser?.id);
+
+    if (sessionUserId && isValidObjectId(sessionUserId)) {
+        const byId = await User.findById(sessionUserId).select("-password");
+        if (byId) return byId;
+    }
+
+    if (sessionUser?.email) {
+        return User.findOne({ email: sessionUser.email }).select("-password");
+    }
+
+    return null;
+};
 
 const autoTitle = (firstMessage: string): string => {
     const trimmed = firstMessage.trim();
@@ -99,13 +116,14 @@ const buildHistoryPayload = (messages: Array<{ role: string; content: string }>)
 export const chatController = {
     async sendMessage(req: Request, res: Response) {
         try {
-            const userId = normalizeObjectId((req as any).user?.id);
+            const sessionUser = (req as any).user;
+            const fallbackUserId = normalizeObjectId(sessionUser?.id);
             const { message, conversationId } = req.body as {
                 message?: string;
                 conversationId?: string;
             };
 
-            if (!userId) {
+            if (!fallbackUserId && !sessionUser?.email) {
                 return res.status(401).json({ error: "Unauthorized" });
             }
 
@@ -115,16 +133,23 @@ export const chatController = {
 
             const cleanMessage = message.trim();
 
-            const user = await User.findById(userId).select("-password");
-            const journals = await Journal.find({ user: userId }).sort({ createdAt: -1 }).limit(8);
-            const progress = await Progress.findOne({ userId });
+            const user = await resolveUserFromSession(sessionUser);
+            const userId = user ? normalizeObjectId(user._id) : fallbackUserId;
+            const canUseMongoUserData = Boolean(user && userId && isValidObjectId(userId));
+
+            const journals = canUseMongoUserData
+                ? await Journal.find({ user: userId }).sort({ createdAt: -1 }).limit(8)
+                : [];
+            const progress = canUseMongoUserData
+                ? await Progress.findOne({ userId })
+                : null;
 
             let conversation = null;
-            if (conversationId) {
+            if (conversationId && canUseMongoUserData) {
                 conversation = await ChatConversation.findOne({ _id: conversationId, userId });
             }
 
-            if (!conversation) {
+            if (!conversation && canUseMongoUserData) {
                 conversation = await ChatConversation.create({
                     userId,
                     title: autoTitle(cleanMessage),
@@ -141,9 +166,11 @@ export const chatController = {
             };
 
             const extracted = extractImportantDetails(cleanMessage);
-            const importantDetails = [...conversation.importantDetails, ...extracted].slice(-MAX_IMPORTANT_DETAILS);
+            const previousImportantDetails = conversation?.importantDetails || [];
+            const importantDetails = [...previousImportantDetails, ...extracted].slice(-MAX_IMPORTANT_DETAILS);
 
-            const conversationMessages = [...conversation.messages, userMessage];
+            const previousMessages = conversation?.messages || [];
+            const conversationMessages = [...previousMessages, userMessage];
 
             const userContext = {
                 userId,
@@ -176,10 +203,16 @@ export const chatController = {
                 recentConversation: buildHistoryPayload(conversationMessages),
             };
 
-            const llmResponse = await axios.post(`${Python_BACKEND_URL}/api/chat/message`, {
-                message: cleanMessage,
-                userContext,
-            });
+            const llmResponse = await axios.post(
+                `${Python_BACKEND_URL}/api/chat/message`,
+                {
+                    message: cleanMessage,
+                    userContext,
+                },
+                {
+                    timeout: 45000,
+                }
+            );
 
             const assistantContent: string =
                 llmResponse.data?.message || llmResponse.data?.content || llmResponse.data?.response ||
@@ -191,19 +224,30 @@ export const chatController = {
                 timestamp: new Date(),
             };
 
-            conversation.messages = [...conversationMessages, assistantMessage];
-            conversation.importantDetails = importantDetails;
-            conversation.lastMessageAt = new Date();
-            conversation.updatedAt = new Date();
-            await conversation.save();
+            if (conversation) {
+                conversation.messages = [...conversationMessages, assistantMessage];
+                conversation.importantDetails = importantDetails;
+                conversation.lastMessageAt = new Date();
+                conversation.updatedAt = new Date();
+                await conversation.save();
+            }
 
             return res.status(200).json({
                 response: assistantContent,
                 sources: llmResponse.data?.sources || [],
                 timestamp: assistantMessage.timestamp,
-                conversationId: String(conversation._id),
+                conversationId: conversation ? String(conversation._id) : null,
             });
         } catch (error) {
+            if (axios.isAxiosError(error)) {
+                const upstreamStatus = error.response?.status;
+                const upstreamDetail = error.response?.data;
+                console.error("Python chat upstream error:", upstreamStatus || "no-status", upstreamDetail || error.message);
+                return res.status(502).json({
+                    error: "AI service unavailable",
+                    detail: process.env.NODE_ENV === "development" ? (upstreamDetail || error.message) : undefined,
+                });
+            }
             console.error("Chat error:", error);
             return res.status(500).json({ error: "Failed to process chat message" });
         }
@@ -211,10 +255,20 @@ export const chatController = {
 
     async getChatHistory(req: Request, res: Response) {
         try {
-            const userId = normalizeObjectId((req as any).user?.id);
+            const sessionUser = (req as any).user;
+            const user = await resolveUserFromSession(sessionUser);
+            const userId = user ? normalizeObjectId(user._id) : "";
 
-            if (!userId) {
+            if (!user && !sessionUser?.id) {
                 return res.status(401).json({ error: "Unauthorized" });
+            }
+
+            if (!userId || !isValidObjectId(userId)) {
+                return res.status(200).json({
+                    userId: normalizeObjectId(sessionUser?.id),
+                    messages: [],
+                    conversations: [],
+                });
             }
 
             const conversations = await ChatConversation.find({ userId })
