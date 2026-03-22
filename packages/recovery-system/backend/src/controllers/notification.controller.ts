@@ -1,6 +1,5 @@
 import { Request, Response } from 'express';
 import Notification from '../models/Notification';
-import CommunityPost from '../models/Community';
 
 declare global {
   namespace Express {
