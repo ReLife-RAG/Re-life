@@ -14,6 +14,7 @@ import { getProfile, updateProfile, getProfileDetails, signUp } from "./controll
 import chatRoutes from "./routes/chat.routes";
 import gamesRoutes from "./routes/games.routes";
 import resourceRoutes from "./routes/resource.routes";
+import notificationRoutes from "./routes/notification.routes";
 
 const app: Application = express();
 
@@ -73,6 +74,9 @@ app.use('/api/games', gamesRoutes);
 
 // ── Resource Routes ───────────────────────────────────────────────────────────
 app.use('/api/resources', resourceRoutes);
+
+// ── Notification Routes ────────────────────────────────────────────────────────
+app.use('/api/notifications', notificationRoutes);
 
 // ── 404 Handler ───────────────────────────────────────────────────────────────
 app.use((req: Request, res: Response) => {
