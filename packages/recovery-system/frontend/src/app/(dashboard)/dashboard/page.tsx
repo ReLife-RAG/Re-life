@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import {
   getStreak, getMoodHistory, getMoodData, dailyCheckIn, logMood,
-  type StreakData, type MoodEntry,
+  getGameStats,
+  type StreakData, type MoodEntry, type GameStatsData,
 } from '@/lib/auth-client';
 import {
   Flame, Trophy, Heart, Calendar, TrendingUp, TrendingDown,
@@ -164,6 +165,7 @@ export default function DashboardPage() {
   // ── State ──
   const [streak,         setStreak]         = useState<StreakData | null>(null);
   const [moodLog,        setMoodLog]        = useState<MoodEntry[]>([]);
+  const [gameStats,      setGameStats]      = useState<GameStatsData | null>(null);
   const [loading,        setLoading]        = useState(true);
   const [selectedMood,   setSelectedMood]   = useState<string | null>(null);
   const [checkInLoading, setCheckInLoading] = useState(false);
@@ -181,9 +183,10 @@ export default function DashboardPage() {
   // ── Fetch ──
   const fetchData = useCallback(async () => {
     try {
-      const [s, m] = await Promise.all([getStreak(), getMoodHistory(30)]);
+      const [s, m, g] = await Promise.all([getStreak(), getMoodHistory(30), getGameStats()]);
       setStreak(s);
       setMoodLog(m.moodLog || []);
+      setGameStats(g);
     } catch (err) {
       console.error('Dashboard fetch error:', err);
     } finally {
@@ -218,6 +221,13 @@ export default function DashboardPage() {
     ? Math.round(moodLog.slice(0, 30).reduce((s, e) => s + (MOOD_SCORE[e.mood] ?? 5), 0) / Math.min(moodLog.length, 30) * 10) / 10
     : 0;
 
+  // Calculate total points: check-in points + game points
+  const checkInPoints = streakDays * 10 + totalCheckIns * 5;
+  const gamePoints = gameStats?.totalGamePoints ?? 0;
+  const points = checkInPoints + gamePoints;
+  const nextReward = Math.ceil((points + 1) / 100) * 100;
+  const pointsPct  = Math.round((points % 100));
+
   const todayMoodLogged = moodLog.some(e => new Date(e.date).toDateString() === new Date().toDateString());
   const todaysFocus = [
     { id: 'checkin', label: 'Daily Check-in',    done: checkedIn },
@@ -245,11 +255,6 @@ export default function DashboardPage() {
 
   const TrendIcon = moodTrend === 'improving' ? TrendingUp : moodTrend === 'declining' ? TrendingDown : Minus;
   const trendColor = moodTrend === 'improving' ? '#22c55e' : moodTrend === 'declining' ? '#ef4444' : '#eab308';
-
-  // Recovery points
-  const points = streakDays * 10 + totalCheckIns * 5;
-  const nextReward = Math.ceil((points + 1) / 100) * 100;
-  const pointsPct  = Math.round((points % 100));
 
   // ── Handlers ──
   const showToast = useCallback((msg: string, type: 'success' | 'error' | 'info' = 'success') => {
@@ -706,9 +711,17 @@ export default function DashboardPage() {
                 </div>
               </div>
               {/* How points are earned */}
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,.5)' }}>
-                <Zap size={11} strokeWidth={2} style={{ display: 'inline', marginRight: 4 }} />
-                +10 per streak day · +5 per check-in
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,.5)'  }}>
+                <div style={{ marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <Zap size={11} strokeWidth={2} />
+                  Streak: <strong>+{checkInPoints}</strong>
+                </div>
+                {gamePoints > 0 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <Zap size={11} strokeWidth={2} />
+                    Games: <strong>+{gamePoints}</strong>
+                  </div>
+                )}
               </div>
             </div>
 
