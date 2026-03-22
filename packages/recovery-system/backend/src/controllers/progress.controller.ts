@@ -2,7 +2,51 @@ import { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import Progress from '../models/Progress';
 import User from '../models/User';
+import { Leaderboard } from '../models/Game';
 import { calculateStreak, getSafeTimezone } from '../utils/streakCalculator';
+
+// Helper function to sync leaderboard (also used by games controller)
+export async function syncLeaderboardHelper(userId: string): Promise<void> {
+  try {
+    const { GameProgress } = require('../models/Game');
+    
+    // Aggregate game points from GameProgress
+    const progresses = await GameProgress.find({ userId });
+    const totalGamePoints = progresses.reduce((s: number, p: any) => s + (p.totalPoints ?? 0), 0);
+    
+    // Get check-in streak bonus
+    const progress = await Progress.findOne({ userId });
+    const streakBonus = progress ? (progress.streak ?? 0) * 10 : 0;
+    const checkInCount = progress ? (progress.moodLog?.length ?? 0) : 0;
+    const checkInBonus = checkInCount * 5;
+    
+    // Calculate total points: game points + streak bonus + check-in bonus
+    const totalPoints = totalGamePoints + streakBonus + checkInBonus;
+    
+    // Best streak from games
+    const bestGameStreak = progresses.length > 0
+      ? Math.max(...progresses.map((p: any) => p.currentStreak ?? 0))
+      : 0;
+    const progressStreak = progress?.streak ?? 0;
+    const streak = Math.max(bestGameStreak, progressStreak);
+    
+    const anonUsername = `User#${userId.toString().slice(-4).toUpperCase()}`;
+
+    await Leaderboard.findOneAndUpdate(
+      { userId },
+      { $set: { anonUsername, totalPoints, currentStreak: streak, lastUpdated: new Date() } },
+      { upsert: true, new: true }
+    );
+
+    const all = await Leaderboard.find().sort({ totalPoints: -1 });
+    const ops = all.map((e: any, i: number) => ({
+      updateOne: { filter: { _id: e._id }, update: { $set: { rank: i + 1 } } }
+    }));
+    if (ops.length) await Leaderboard.bulkWrite(ops);
+  } catch (err) {
+    console.error('syncLeaderboard:', err);
+  }
+}
 
 // Step 3: Daily Check-in Logic
 // POST /api/progress/checkin
@@ -55,6 +99,9 @@ export const dailyCheckIn = async (req: Request, res: Response): Promise<Respons
       });
 
       await progress.save();
+
+      // Sync leaderboard with initial check-in
+      syncLeaderboardHelper(userId.toString()).catch(console.error);
 
       return res.status(201).json({
         message: 'First check-in complete! Your recovery journey starts now! 🎉',
@@ -117,6 +164,9 @@ export const dailyCheckIn = async (req: Request, res: Response): Promise<Respons
     });
 
     await progress.save();
+
+    // Sync leaderboard after streak update
+    syncLeaderboardHelper(userId.toString()).catch(console.error);
 
     // Build response message
     let message = `Check-in successful! 🔥 Current streak: ${progress.streak} days`;
