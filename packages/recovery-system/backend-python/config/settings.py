@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     MODEL_NAME: str = "gemini-2.5-flash"
 
     # Embeddings
-    EMBEDDING_MODEL: str = "sentence-transformers/all-MiniLM-L6-v2"
+    EMBEDDING_MODEL: str = "BAAI/bge-small-en-v1.5"
 
     # Express Backend
     EXPRESS_BACKEND_URL: str = "http://localhost:5000"

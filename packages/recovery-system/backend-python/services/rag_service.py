@@ -3,9 +3,9 @@ import hashlib
 from pathlib import Path
 from typing import List, Dict, Any
 from langchain_community.document_loaders import PyPDFDirectoryLoader
+from langchain_community.embeddings import FastEmbedEmbeddings
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_pinecone import PineconeVectorStore
 from langchain_google_genai import ChatGoogleGenerativeAI
 from pinecone import Pinecone
@@ -17,10 +17,12 @@ class RAGService:
         self.pc = Pinecone(api_key=settings.PINECONE_API_KEY)
         self.index_name = settings.PINECONE_INDEX_NAME
 
-        # Initialize embeddings
-        self.embeddings = HuggingFaceEmbeddings(
-            model_name=settings.EMBEDDING_MODEL
-        )
+        # Use a lightweight local embedding backend to avoid heavyweight torch installs in cloud builds.
+        configured_model = settings.EMBEDDING_MODEL
+        if configured_model == "sentence-transformers/all-MiniLM-L6-v2":
+            configured_model = "BAAI/bge-small-en-v1.5"
+
+        self.embeddings = FastEmbedEmbeddings(model_name=configured_model)
 
         # Initialize vector store
         self.vector_store = PineconeVectorStore(
