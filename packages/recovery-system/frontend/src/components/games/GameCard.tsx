@@ -23,7 +23,7 @@ const DIFF_STYLE: Record<string,{bg:string;color:string;label:string}> = {
 };
 
 // Map game name → Lucide icon component
-const GAME_ICONS: Record<string, React.FC<{size?:number;strokeWidth?:number;color?:string}>> = {
+const GAME_ICONS: Record<string, React.FC<any>> = {
   sober:    Shield,
   forest:   Activity,
   habitica: Layers,

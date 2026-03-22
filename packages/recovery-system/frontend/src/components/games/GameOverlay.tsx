@@ -18,7 +18,7 @@ const CAT_ACCENT: Record<string,string> = {
   substance:'#1a7a4a', social:'#1e40af', behavioral:'#6d28d9',
   pornography:'#b45309', screen:'#dc2626', mindfulness:'#0d7377',
 };
-const GAME_ICONS: Record<string, React.FC<{size?:number;strokeWidth?:number;color?:string}>> = {
+const GAME_ICONS: Record<string, React.FC<any>> = {
   sober:Shield, forest:Activity, habitica:Layers, braver:TrendingUp, mindful:Wind, journal:BookOpen,
 };
 
