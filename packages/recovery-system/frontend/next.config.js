@@ -1,4 +1,7 @@
 /** @type {import('next').NextConfig} */
+const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+const backendBase = rawApiUrl.replace(/\/$/, '').replace(/\/api$/, '');
+
 const nextConfig = {
   images: {
     // Allow Next.js <Image> to load from the backend dev server and Cloudinary
@@ -29,12 +32,12 @@ const nextConfig = {
     return [
       {
         source: '/uploads/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/uploads/:path*`,
+        destination: `${backendBase}/uploads/:path*`,
       },
       // Proxy all /api calls to backend (if not already present)
       {
         source: '/api/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/:path*`,
+        destination: `${backendBase}/api/:path*`,
       },
     ];
   },
