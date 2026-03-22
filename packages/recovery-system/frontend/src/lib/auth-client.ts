@@ -384,3 +384,46 @@ export async function getCheckInHistory(days?: number): Promise<HistoryResponse>
   if (!res.ok) throw new Error(json.message || 'Failed to fetch history');
   return json;
 }
+
+// ─── Game Stats API Functions ─────────────────────────────────────
+
+export interface GameStatsData {
+  totalGamePoints: number;
+  bestGameStreak: number;
+  longestGameStreak: number;
+  gamesPlayed: number;
+  breakdown: {
+    gameId: string;
+    gameType: string;
+    points: number;
+    streak: number;
+    longestStreak: number;
+  }[];
+}
+
+/**
+ * Get aggregated game stats for current user
+ */
+export async function getGameStats(): Promise<GameStatsData> {
+  const res = await fetch(`${API_URL}/api/games/stats/user`, {
+    credentials: 'include',
+  });
+
+  const json = await res.json();
+
+  if (res.status === 404) {
+    return {
+      totalGamePoints: 0,
+      bestGameStreak: 0,
+      longestGameStreak: 0,
+      gamesPlayed: 0,
+      breakdown: [],
+    };
+  }
+
+  if (!res.ok) {
+    throw new Error(json.message || 'Failed to fetch game stats');
+  }
+
+  return json.data;
+}
