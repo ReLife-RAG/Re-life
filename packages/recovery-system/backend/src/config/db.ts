@@ -9,8 +9,11 @@ export const connectDB = async () => {
     console.log(' MongoDB Connected Successfully');
   } catch (error: any) {
     console.error(' MongoDB Connection Error:', error.message);
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('Database connection failed in production. Check MONGODB_URI and network access.');
+    }
     // Don't exit in development, just log the error
-    console.log('  Continuing without database connection (using in-memory for testing)');
+    console.log('  Continuing without database connection (development mode only)');
   }
 };
 

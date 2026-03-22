@@ -1,5 +1,6 @@
 import dotenv from "dotenv";
 import {connectDB} from "./config/db";
+import mongoose from "mongoose";
 
 dotenv.config();
 
@@ -16,7 +17,11 @@ const startServer = async () => {
     
     // 1. Connect to Database FIRST
     await connectDB();
-    console.log('Database connected successfully');
+    if (mongoose.connection.readyState === 1) {
+      console.log('Database connected successfully');
+    } else {
+      console.warn('Database is not connected. Some features may fail in development.');
+    }
 
     // 2. Load the app only after DB is ready
     const app = (await import("./app")).default;

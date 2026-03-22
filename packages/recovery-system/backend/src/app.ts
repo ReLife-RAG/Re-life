@@ -27,9 +27,29 @@ app.use(express.json());
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
+const allowedOrigins = Array.from(
+  new Set(
+    [
+      process.env.FRONTEND_URL,
+      process.env.CORS_ORIGINS,
+      "http://localhost:3000",
+      "http://localhost:5173",
+    ]
+      .filter(Boolean)
+      .flatMap((value) => String(value).split(","))
+      .map((value) => value.trim())
+      .filter(Boolean)
+  )
+);
+
 app.use(cors({
   origin: process.env.NODE_ENV === 'production'
-    ? process.env.FRONTEND_URL
+    ? (origin, callback) => {
+        // Allow non-browser clients and same-origin requests with no Origin header.
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.includes(origin)) return callback(null, true);
+        return callback(new Error(`CORS origin not allowed: ${origin}`));
+      }
     : true,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
