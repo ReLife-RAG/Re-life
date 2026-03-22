@@ -78,9 +78,12 @@ const HeroSection = () => {
 
           {/* CTA Button */}
           <div className="flex justify-center mb-16 animate-scaleIn animation-delay-200">
-            <button className="px-12 py-4 bg-white/20 backdrop-blur-md hover:bg-white/30 text-white border border-white/30 rounded-full text-lg font-medium transition-all duration-800 ease-in-out hover:scale-105 hover:shadow-2xl">
+            <a 
+              href="https://re-life-frontend.vercel.app/" 
+              className="inline-block px-12 py-4 bg-white/20 backdrop-blur-md hover:bg-white/30 text-white border border-white/30 rounded-full text-lg font-medium transition-all duration-800 ease-in-out hover:scale-105 hover:shadow-2xl"
+            >
               Start here
-            </button>
+            </a>
           </div>
 
           {/* Feature Pills */}
