@@ -26,20 +26,20 @@ const nextConfig = {
     ],
   },
 
-  // Proxy /uploads requests from Next.js dev server → backend
-  // This means <img src="/uploads/file.png" /> also works (relative URL)
+  // Proxy /uploads requests from Next.js dev server → backend (dev only)
+  // In production, images are served by backend via NEXT_PUBLIC_API_URL
   async rewrites() {
-    return [
-      {
-        source: '/uploads/:path*',
-        destination: `${backendBase}/uploads/:path*`,
-      },
-      // Proxy all /api calls to backend (if not already present)
-      {
-        source: '/api/:path*',
-        destination: `${backendBase}/api/:path*`,
-      },
-    ];
+    return {
+      beforeFiles: [
+        // Only proxy /uploads in development
+        process.env.NODE_ENV === 'development'
+          ? {
+              source: '/uploads/:path*',
+              destination: `${backendBase}/uploads/:path*`,
+            }
+          : null,
+      ].filter(Boolean),
+    };
   },
 };
 
