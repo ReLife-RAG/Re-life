@@ -1,8 +1,9 @@
 /**
  * Auth Client - Communicates with BetterAuth backend endpoints.
- * Always use explicit backend URL in both browser and server contexts.
+ * Browser requests use same-origin /api proxy to preserve auth cookies.
  */
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace(/\/+$/, '');
+const serverApiUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace(/\/+$/, '');
+const API_URL = typeof window !== 'undefined' ? '' : serverApiUrl;
 
 // ─── Types ───────────────────────────────────────────────────────
 

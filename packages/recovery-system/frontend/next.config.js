@@ -26,20 +26,19 @@ const nextConfig = {
     ],
   },
 
-  // Proxy /uploads requests from Next.js dev server → backend (dev only)
-  // In production, images are served by backend via NEXT_PUBLIC_API_URL
+  // Proxy backend resources through Next.js so browser requests stay same-origin.
+  // This avoids cross-site cookie/session issues in production.
   async rewrites() {
-    return {
-      beforeFiles: [
-        // Only proxy /uploads in development
-        process.env.NODE_ENV === 'development'
-          ? {
-              source: '/uploads/:path*',
-              destination: `${backendBase}/uploads/:path*`,
-            }
-          : null,
-      ].filter(Boolean),
-    };
+    return [
+      {
+        source: '/uploads/:path*',
+        destination: `${backendBase}/uploads/:path*`,
+      },
+      {
+        source: '/api/:path*',
+        destination: `${backendBase}/api/:path*`,
+      },
+    ];
   },
 };
 
