@@ -41,6 +41,7 @@ export const chatService = {
   async sendMessage(
     message: string,
     userId: string,
+    userContext?: Record<string, unknown>,
     history?: ChatHistoryItem[],
     conversationId?: string
   ): Promise<ChatResponse> {
@@ -57,6 +58,7 @@ export const chatService = {
       body: JSON.stringify({
         message,
         userContext: {
+          ...(userContext || {}),
           userId,
           history,
           conversationId,

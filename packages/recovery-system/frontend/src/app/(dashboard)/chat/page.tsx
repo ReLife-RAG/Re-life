@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useCallback, KeyboardEvent, useMemo
 import Image from 'next/image';
 import { useAuth } from '@/context/AuthContext';
 import { chatService, ChatConversation, ChatHistoryItem, ChatMessage } from '@/lib/chat-client';
+import { getStreak } from '@/lib/auth-client';
 import {
   Send,
   Plus,
@@ -396,6 +397,7 @@ function EmptyState({ onPrompt, userName }: { onPrompt: (p: string) => void; use
 export default function ChatPage() {
   const { user } = useAuth();
   const firstName = user?.name?.split(' ')[0] || 'there';
+  const [streakContext, setStreakContext] = useState<{ currentStreak: number; longestStreak: number; milestonesAchieved: string[] } | null>(null);
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -459,6 +461,30 @@ export default function ChatPage() {
     window.addEventListener('resize', updateViewport);
     return () => window.removeEventListener('resize', updateViewport);
   }, []);
+
+  useEffect(() => {
+    if (!user?.id) {
+      setStreakContext(null);
+      return;
+    }
+
+    (async () => {
+      try {
+        const streak = await getStreak();
+        const milestonesAchieved = (streak.milestones || [])
+          .filter((m) => m.achieved)
+          .map((m) => m.name);
+
+        setStreakContext({
+          currentStreak: streak.currentStreak || 0,
+          longestStreak: streak.longestStreak || 0,
+          milestonesAchieved,
+        });
+      } catch {
+        setStreakContext(null);
+      }
+    })();
+  }, [user?.id]);
 
   useEffect(() => {
     if (!user?.id) {
@@ -565,9 +591,24 @@ export default function ChatPage() {
           throw new Error('User session is required for chat');
         }
 
+        const personalizedContext = {
+          profile: {
+            name: user?.name,
+            addictionType: user?.addictionTypes?.[0],
+            addictionTypes: user?.addictionTypes || [],
+            sobrietyStartDate: user?.recoveryStart,
+          },
+          progress: {
+            currentStreak: streakContext?.currentStreak || 0,
+            longestStreak: streakContext?.longestStreak || 0,
+            milestonesAchieved: streakContext?.milestonesAchieved || [],
+          },
+        };
+
         const response = await chatService.sendMessage(
           content,
           user.id,
+          personalizedContext,
           historyPayload,
           normalizedConversationId
         );
@@ -615,7 +656,7 @@ export default function ChatPage() {
         inputRef.current?.focus();
       }
     },
-    [input, loading, activeId, activeConv?.messages, updateConversation, user?.id]
+    [input, loading, activeId, activeConv?.messages, updateConversation, user?.id, user?.name, user?.addictionTypes, user?.recoveryStart, streakContext]
   );
 
   const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {

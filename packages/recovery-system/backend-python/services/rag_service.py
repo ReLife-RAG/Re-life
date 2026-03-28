@@ -184,14 +184,26 @@ Keep your response conversational, supportive, and actionable. Remember all the 
         progress = user_context.get('progress', {})
         journals = user_context.get('recentJournals', [])
 
+        addiction_type = profile.get('addictionType', 'N/A')
+        if addiction_type == 'N/A':
+            addiction_types = profile.get('addictionTypes', [])
+            if isinstance(addiction_types, list) and addiction_types:
+                addiction_type = ', '.join([str(item) for item in addiction_types])
+
+        sobriety_start = profile.get('sobrietyStartDate', profile.get('recoveryStart', 'N/A'))
+
+        milestones = progress.get('milestonesAchieved', [])
+        if not isinstance(milestones, list):
+            milestones = []
+
         context_text = f"""
 Name: {profile.get('name', 'N/A')}
-Addiction Type: {profile.get('addictionType', 'N/A')}
-Sobriety Start Date: {profile.get('sobrietyStartDate', 'N/A')}
+Addiction Type: {addiction_type}
+Sobriety Start Date: {sobriety_start}
 Current Streak: {progress.get('currentStreak', 0)} days
 Longest Streak: {progress.get('longestStreak', 0)} days
 Total Days Sober: {progress.get('totalDaysSober', 0)} days
-Milestones: {', '.join(progress.get('milestonesAchieved', []))}
+Milestones: {', '.join([str(item) for item in milestones])}
 
 Recent Journal Entries:
 """
