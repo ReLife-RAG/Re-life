@@ -2,7 +2,7 @@
  * Chat Client - Routes to Python backend (RAG/LLM service)
  * Uses a separate endpoint from the main Node.js backend
  */
-const CHAT_API_URL = process.env.NEXT_PUBLIC_CHAT_API_URL || "http://localhost:8000";
+const CHAT_API_URL = (process.env.NEXT_PUBLIC_CHAT_API_URL || "http://localhost:8000").replace(/\/+$/, "");
 
 export interface ChatMessage {
   role: "user" | "assistant";

@@ -2,7 +2,7 @@
  * Auth Client - Communicates with BetterAuth backend endpoints.
  * Always use explicit backend URL in both browser and server contexts.
  */
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace(/\/+$/, '');
 
 // ─── Types ───────────────────────────────────────────────────────
 
