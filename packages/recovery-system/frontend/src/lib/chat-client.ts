@@ -1,4 +1,10 @@
-const API_URL = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000");
+/**
+ * Chat Client - Routes to Python backend (RAG/LLM service)
+ * Uses a separate endpoint from the main Node.js backend
+ */
+const CHAT_API_URL = typeof window !== "undefined" 
+  ? "" 
+  : (process.env.NEXT_PUBLIC_CHAT_API_URL || "http://localhost:8000");
 
 export interface ChatMessage {
   role: "user" | "assistant";
@@ -38,7 +44,7 @@ export const chatService = {
     history?: ChatHistoryItem[],
     conversationId?: string
   ): Promise<ChatResponse> {
-    const response = await fetch(`${API_URL}/api/chat/message`, {
+    const response = await fetch(`${CHAT_API_URL}/api/chat/message`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -55,7 +61,7 @@ export const chatService = {
   },
 
   async getChatHistory(): Promise<{ messages: ChatMessage[]; conversations?: ChatConversation[] }> {
-    const response = await fetch(`${API_URL}/api/chat/history`, {
+    const response = await fetch(`${CHAT_API_URL}/api/chat/history`, {
       credentials: "include", // Send cookies for authentication
     });
 
