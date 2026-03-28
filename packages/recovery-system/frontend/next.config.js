@@ -1,6 +1,8 @@
 /** @type {import('next').NextConfig} */
 const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 const backendBase = rawApiUrl.replace(/\/$/, '').replace(/\/api$/, '');
+const rawChatApiUrl = process.env.NEXT_PUBLIC_CHAT_API_URL || 'http://localhost:8000';
+const chatBackendBase = rawChatApiUrl.replace(/\/$/, '').replace(/\/api$/, '');
 
 const nextConfig = {
   images: {
@@ -33,6 +35,10 @@ const nextConfig = {
       {
         source: '/uploads/:path*',
         destination: `${backendBase}/uploads/:path*`,
+      },
+      {
+        source: '/api/chat/:path*',
+        destination: `${chatBackendBase}/api/chat/:path*`,
       },
       {
         source: '/api/:path*',
