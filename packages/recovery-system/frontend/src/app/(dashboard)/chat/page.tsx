@@ -461,9 +461,14 @@ export default function ChatPage() {
   }, []);
 
   useEffect(() => {
+    if (!user?.id) {
+      setHistoryLoading(false);
+      return;
+    }
+
     (async () => {
       try {
-        const { messages: history, conversations: serverConversationsRaw } = await chatService.getChatHistory();
+        const { messages: history, conversations: serverConversationsRaw } = await chatService.getChatHistory(user.id);
         const serverConversations = Array.isArray(serverConversationsRaw)
           ? sortConversations(serverConversationsRaw.map(fromServerConversation))
           : splitServerHistoryIntoConversations(history || []);
@@ -493,7 +498,7 @@ export default function ChatPage() {
         setHistoryLoading(false);
       }
     })();
-  }, [createNewConversation]);
+  }, [createNewConversation, user?.id]);
 
   useEffect(() => {
     if (!conversations.length || typeof window === 'undefined') return;
@@ -556,7 +561,16 @@ export default function ChatPage() {
 
       try {
         const normalizedConversationId = convId.startsWith(TEMP_ID_PREFIX) ? undefined : convId;
-        const response = await chatService.sendMessage(content, historyPayload, normalizedConversationId);
+        if (!user?.id) {
+          throw new Error('User session is required for chat');
+        }
+
+        const response = await chatService.sendMessage(
+          content,
+          user.id,
+          historyPayload,
+          normalizedConversationId
+        );
         const assistantMessage: ChatMessage = {
           role: 'assistant',
           content: response.response,
@@ -601,7 +615,7 @@ export default function ChatPage() {
         inputRef.current?.focus();
       }
     },
-    [input, loading, activeId, activeConv?.messages, updateConversation]
+    [input, loading, activeId, activeConv?.messages, updateConversation, user?.id]
   );
 
   const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {

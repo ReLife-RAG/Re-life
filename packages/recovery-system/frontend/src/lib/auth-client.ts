@@ -1,11 +1,8 @@
 /**
- * Auth Client - Communicates with BetterAuth backend endpoints
- * In development, Next.js rewrites proxy /api/* to the backend (http://localhost:5000)
- * This means we can use relative URLs, avoiding CORS issues entirely.
+ * Auth Client - Communicates with BetterAuth backend endpoints.
+ * Always use explicit backend URL in both browser and server contexts.
  */
-
-// Use relative URL (proxied by Next.js rewrites) or direct backend URL
-const API_URL = typeof window !== 'undefined' ? '' : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000');
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
 // ─── Types ───────────────────────────────────────────────────────
 

@@ -2,9 +2,7 @@
  * Chat Client - Routes to Python backend (RAG/LLM service)
  * Uses a separate endpoint from the main Node.js backend
  */
-const CHAT_API_URL = typeof window !== "undefined" 
-  ? "" 
-  : (process.env.NEXT_PUBLIC_CHAT_API_URL || "http://localhost:8000");
+const CHAT_API_URL = process.env.NEXT_PUBLIC_CHAT_API_URL || "http://localhost:8000";
 
 export interface ChatMessage {
   role: "user" | "assistant";
@@ -41,16 +39,28 @@ export interface ChatConversation {
 export const chatService = {
   async sendMessage(
     message: string,
+    userId: string,
     history?: ChatHistoryItem[],
     conversationId?: string
   ): Promise<ChatResponse> {
+    if (!userId) {
+      throw new Error("User ID is required to send chat messages");
+    }
+
     const response = await fetch(`${CHAT_API_URL}/api/chat/message`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       credentials: "include", // Send cookies for authentication
-      body: JSON.stringify({ message, history, conversationId }),
+      body: JSON.stringify({
+        message,
+        userContext: {
+          userId,
+          history,
+          conversationId,
+        },
+      }),
     });
 
     if (!response.ok) {
@@ -60,8 +70,12 @@ export const chatService = {
     return response.json();
   },
 
-  async getChatHistory(): Promise<{ messages: ChatMessage[]; conversations?: ChatConversation[] }> {
-    const response = await fetch(`${CHAT_API_URL}/api/chat/history`, {
+  async getChatHistory(userId: string): Promise<{ messages: ChatMessage[]; conversations?: ChatConversation[] }> {
+    if (!userId) {
+      return { messages: [] };
+    }
+
+    const response = await fetch(`${CHAT_API_URL}/api/chat/history/${encodeURIComponent(userId)}`, {
       credentials: "include", // Send cookies for authentication
     });
 
